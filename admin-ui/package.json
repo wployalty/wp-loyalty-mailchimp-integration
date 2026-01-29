@@ -1,0 +1,42 @@
+{
+  "name": "react-wordpress",
+  "description": "WPLoyalty Mailchimp Integration UI",
+  "license": "MIT",
+  "repository": {},
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.21.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.14.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "cross-env BABEL_ENV=default NODE_ENV=production webpack --mode production --progress",
+    "start": "cross-env BABEL_ENV=default NODE_ENV=development webpack --watch --mode development --progress",
+    "css": "postcss ./src/styles/tailwind.css -o ./src/styles/tailwind.generated.css ",
+    "prestart": "npm run css",
+    "prebuild": "cross-env NODE_ENV=production npm run css"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.5",
+    "@babel/plugin-transform-runtime": "^7.22.5",
+    "@babel/preset-env": "^7.22.5",
+    "@babel/preset-react": "^7.22.5",
+    "autoprefixer": "^10.3.4",
+    "babel-loader": "^9.1.2",
+    "babel-plugin-transform-class-properties": "^7.0.0-beta.3",
+    "babel-plugin-transform-react-jsx": "^7.0.0-beta.3",
+    "cross-env": "^7.0.3",
+    "css-loader": "^6.2.0",
+    "postcss": "^8.4.13",
+    "postcss-cli": "^9.1.0",
+    "postcss-loader": "^6.2.1",
+    "postcss-preset-env": "^7.5.0",
+    "style-loader": "^3.2.1",
+    "tailwindcss": "3.1.4",
+    "webpack": "5.90.0",
+    "webpack-cli": "^4.7.0"
+  }
+}

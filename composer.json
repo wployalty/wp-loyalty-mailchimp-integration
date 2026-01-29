@@ -1,0 +1,15 @@
+{
+  "name": "wployalty/wp-loyalty-mailchimp-integration",
+  "description": "Mailchimp integration for WPLoyalty - V1",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": "7.4.*",
+    "yahnis-elsts/plugin-update-checker": "^v5.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "WLMI\\": ""
+    }
+  }
+}

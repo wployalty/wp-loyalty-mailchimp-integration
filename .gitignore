@@ -1,0 +1,9 @@
+.idea
+vendor
+composer.lock
+admin-ui/node_modules
+admin-ui/package-lock.json
+assets/admin/js/dist
+.cursor
+wp-stubs
+docs
