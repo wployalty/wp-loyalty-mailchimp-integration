@@ -3,20 +3,22 @@ import TitleActionContainer from "../components/Common/TitleActionContainer";
 import {CommonContext, UiLabelContext} from "../Context";
 import LoadingAnimation from "../components/Common/LoadingAnimation";
 import {postRequest} from "../components/Common/postRequest";
-import {alertifyToast, confirmAlert, errorDisplayer, getJSONData, getErrorMessage} from "../helpers/utilities";
-import LabelInputContainer from "../components/Common/LabelInputContainer";
+import { alertifyToast, errorDisplayer, getJSONData } from "../helpers/utilities";
+import Input from "../components/Common/Input";
+import Button from "../components/Common/Button";
 
 const Settings = () => {
     const {appState} = React.useContext(CommonContext);
     const labels = React.useContext(UiLabelContext);
-    
-    // Manage settings as an object for extensibility
+
     const [settings, setSettings] = React.useState({
         api_key: ""
     });
     const [loading, setLoading] = React.useState(true);
+    const [testLoading, setTestLoading] = React.useState(false);
     const [errorList, setErrorList] = React.useState([]);
     const [errors, setErrors] = React.useState({});
+    const [isConnected, setIsConnected] = React.useState(false);
 
     const getSettings = async (wlmi_nonce = appState.settings_nonce) => {
         let params = {
@@ -27,11 +29,11 @@ const Settings = () => {
         postRequest(params).then((json) => {
             let resJSON = getJSONData(json.data);
             if (resJSON.success === true && resJSON.data !== null) {
-                 // Clean API key if it came from the old format or verify strict object structure
                  let loadedSettings = resJSON.data;
                  if (!loadedSettings.api_key) loadedSettings.api_key = ""; 
                  
                  setSettings(loadedSettings);
+                setIsConnected(loadedSettings.connected || false);
                  setLoading(false)
             } else {
                  setLoading(false);
@@ -43,20 +45,11 @@ const Settings = () => {
         getSettings();
     }, []);
 
-    const handleChange = (e) => {
-        const {name, value} = e.target;
-        setSettings(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    }
-
     const saveSettings = async (wlmi_nonce = appState.settings_nonce) => {
         let params = {
             wlmi_nonce,
             action: "wlmi_launcher_save_settings", 
         };
-        // Encode settings object as base64 string
         params.settings = btoa(unescape(encodeURIComponent(JSON.stringify(settings))));
         
         let json = await postRequest(params);
@@ -71,29 +64,97 @@ const Settings = () => {
         }
     }
 
+    const handleTestConnection = async () => {
+        setTestLoading(true);
+        let params = {
+            wlmi_nonce: appState.settings_nonce,
+            action: "wlmi_test_connection",
+            api_key: settings.api_key
+        };
 
+        try {
+            let json = await postRequest(params);
+            let resJSON = getJSONData(json.data);
+            if (resJSON.success === true) {
+                alertifyToast(resJSON.data.message);
+                setIsConnected(true);
+            } else {
+                alertifyToast(resJSON.data.message, false);
+                setIsConnected(false);
+            }
+        } catch (e) {
+            setIsConnected(false);
+        }
+        setTestLoading(false);
+    }
 
     return loading ? (<LoadingAnimation/>) : (
-        <div className={`w-full flex flex-col gap-y-2 items-start h-full `}>
+        <div className="w-full flex flex-col gap-y-2 items-start h-full">
             <TitleActionContainer 
                 title={labels.settings?.title || "Mailchimp Settings"} 
                 saveAction={() => saveSettings()}
             />
             
-            <div className={`flex gap-x-6 items-start w-full h-[590px]`}>
-                 <div className={`w-full h-full flex flex-col border border-card_border rounded-xl bg-white p-6`}>
-                    <div className="flex flex-col gap-4 max-w-xl">
-                        <LabelInputContainer
-                            label={labels.settings?.api_key || "Mailchimp API Key"}
-                            value={settings.api_key}
-                            onChange={(e) => setSettings(prev => ({...prev, api_key: e.target.value}))}
-                            placeHolder={labels.settings?.placeholder || "Enter your Mailchimp API Key"}
-                            error={errorList.includes("settings.api_key")}
-                            error_message={errorList.includes("settings.api_key") && getErrorMessage(errors, "settings.api_key")}
-                        />
-                        <p className="text-light text-sm">
-                            {labels.settings?.description || "You can find your API key in your Mailchimp account settings."}
-                        </p>
+            <div className="flex gap-x-6 items-start w-full h-[590px]">
+                <div className="w-full h-full flex flex-col border border-card_border rounded-xl bg-white p-6">
+                    <h4 className="text-dark font-semibold text-lg tracking-wide">
+                        {labels.settings?.title || "Mailchimp Settings"}
+                    </h4>
+                    <p className="text-sm text-light font-normal mt-2 2xl:mt-2.5">
+                        {labels.settings?.description || "You can find your API key in your Mailchimp account settings."}
+                    </p>
+
+                    <div className="flex flex-col w-74_% 2xl:w-7/12 mt-3 xl:mt-4 2xl:mt-5">
+                        <div className="flex items-center w-full gap-x-5">
+                            <div className="flex-1">
+                                <Input
+                                    id="api_key"
+                                    type="text"
+                                    value={settings.api_key || ""}
+                                    placeHolder={labels.settings?.placeholder || "Enter your Mailchimp API Key"}
+                                    border={`border-2 border-opacity-100 ${isConnected ? 'border-green-500' : 'border-red-600'}`}
+                                    textColor={isConnected ? 'text-green-600' : 'text-red-600'}
+                                    height="h-12"
+                                    onChange={(e) => {
+                                        setSettings({
+                                            ...settings,
+                                            api_key: e.target.value
+                                        });
+                                    }}
+                                    error={errorList.includes("api_key")}
+                                />
+                            </div>
+
+                            <div className="flex items-center">
+                                <Button
+                                    id="test_connection"
+                                    icon={
+                                        <i className="text-md text-white leading-0 antialiased wlr wlrf-save color-important" />
+                                    }
+                                    textStyle="text-white font-medium text-sm_14_l_20"
+                                    bgColor="bg-green-600"
+                                    others="tracking-wide h-12 flex items-center"
+                                    padding="px-5 py-3"
+                                    disabled={testLoading}
+                                    click={(e) => {
+                                        e.preventDefault();
+                                        handleTestConnection();
+                                    }}
+                                >
+                                    {labels.settings?.test_connection || "Test Connection"}
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1 mt-2">
+                            <span className="text-sm text-gray-600">
+                                {labels.settings?.status || "Status"}:
+                            </span>
+                            <span className={`text-sm font-medium ${isConnected ? "text-green-600" : "text-red-600"}`}>
+                                {isConnected
+                                    ? (labels.settings?.active || "Active")
+                                    : (labels.settings?.inactive || "Inactive")}
+                            </span>
+                        </div>
                     </div>
                  </div>
             </div>

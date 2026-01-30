@@ -134,10 +134,14 @@ class Labels {
 	 */
 	public static function getSettingsLabels() {
 		return [
-			'title'       => __( 'Mailchimp Settings', 'wp-loyalty-mailchimp-integration' ),
-			'api_key'     => __( 'Mailchimp API Key', 'wp-loyalty-mailchimp-integration' ),
-			'placeholder' => __( 'Enter your Mailchimp API Key', 'wp-loyalty-mailchimp-integration' ),
-			'description' => __( 'You can find your API key in your Mailchimp account settings.', 'wp-loyalty-mailchimp-integration' ),
+			'title'           => __( 'Mailchimp Settings', 'wp-loyalty-mailchimp-integration' ),
+			'api_key'         => __( 'Mailchimp API Key', 'wp-loyalty-mailchimp-integration' ),
+			'placeholder'     => __( 'Enter your Mailchimp API Key', 'wp-loyalty-mailchimp-integration' ),
+			'description'     => __( 'You can find your API key in your Mailchimp account settings.', 'wp-loyalty-mailchimp-integration' ),
+			'status'          => __( 'Status', 'wp-loyalty-mailchimp-integration' ),
+			'active'          => __( 'Active', 'wp-loyalty-mailchimp-integration' ),
+			'inactive'        => __( 'Inactive', 'wp-loyalty-mailchimp-integration' ),
+			'test_connection' => __( 'Test Connection', 'wp-loyalty-mailchimp-integration' ),
 		];
 	}
 
