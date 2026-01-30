@@ -4,6 +4,7 @@ namespace WLMI\App\Controller\Admin;
 
 use WLMI\App\Helper\Input;
 use WLMI\App\Helper\WC;
+use WLMI\App\Helper\Settings as SettingsHelper;
 
 defined( 'ABSPATH' ) or die;
 
@@ -65,4 +66,55 @@ class Api {
 			return false;
 		}
 	}
+
+	/**
+	 * Get Mailchimp lists with pagination
+	 *
+	 * @return void
+	 */
+	public static function getLists() {
+		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
+		}
+
+		$offset = (int) Input::get( 'offset', 0 );
+		$count  = (int) Input::get( 'count', 25 );
+
+		$settings = SettingsHelper::gets();
+
+		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
+			wp_send_json_error( [ 'message' => __( 'API connection not configured', 'wp-loyalty-mailchimp-integration' ) ] );
+		}
+
+		try {
+			$mailchimp = new \MailchimpMarketing\ApiClient();
+			$mailchimp->setConfig( [
+				'apiKey' => $settings['api_key'],
+				'server' => $settings['server']
+			] );
+
+			$response = $mailchimp->lists->getAllLists( null, null, (string) $count, (string) $offset );
+
+			$lists = [];
+			if ( isset( $response->lists ) && is_array( $response->lists ) ) {
+				foreach ( $response->lists as $list ) {
+					$lists[] = [
+						'value' => $list->id,
+						'label' => $list->name,
+						'stats' => isset( $list->stats ) ? $list->stats : null
+					];
+				}
+			}
+
+			wp_send_json_success( [
+				'lists'       => $lists,
+				'total_items' => isset( $response->total_items ) ? $response->total_items : 0,
+				'offset'      => $offset,
+				'count'       => $count
+			] );
+		} catch ( \Exception $e ) {
+			wp_send_json_error( [ 'message' => __( 'Failed to fetch lists', 'wp-loyalty-mailchimp-integration' ) . ': ' . $e->getMessage() ] );
+		}
+	}
+
 }

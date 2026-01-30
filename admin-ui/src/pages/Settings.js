@@ -1,6 +1,7 @@
 import React from 'react';
 import TitleActionContainer from "../components/Common/TitleActionContainer";
 import ShimmerLoading from "../components/Common/ShimmerLoading";
+import ListSelect from "../components/Common/ListSelect";
 import { CommonContext, UiLabelContext } from "../Context";
 import {postRequest} from "../components/Common/postRequest";
 import { alertifyToast, errorDisplayer, getJSONData } from "../helpers/utilities";
@@ -12,13 +13,21 @@ const Settings = () => {
     const labels = React.useContext(UiLabelContext);
 
     const [settings, setSettings] = React.useState({
-        api_key: ""
+        api_key: "",
+        list_id: ""
     });
     const [loading, setLoading] = React.useState(true);
     const [testLoading, setTestLoading] = React.useState(false);
     const [errorList, setErrorList] = React.useState([]);
     const [errors, setErrors] = React.useState({});
     const [isConnected, setIsConnected] = React.useState(false);
+
+    // List selection state
+    const [lists, setLists] = React.useState([]);
+    const [listsLoading, setListsLoading] = React.useState(false);
+    const [listOffset, setListOffset] = React.useState(0);
+    const [totalLists, setTotalLists] = React.useState(0);
+    const [selectedList, setSelectedList] = React.useState(null);
 
     const getSettings = async (wlmi_nonce = appState.settings_nonce) => {
         setLoading(true);
@@ -33,9 +42,15 @@ const Settings = () => {
             if (resJSON.success === true && resJSON.data !== null) {
                  let loadedSettings = resJSON.data;
                  if (!loadedSettings.api_key) loadedSettings.api_key = ""; 
+                if (!loadedSettings.list_id) loadedSettings.list_id = "";
                  
                  setSettings(loadedSettings);
                 setIsConnected(loadedSettings.connected || false);
+
+                // If connected, fetch lists
+                if (loadedSettings.connected) {
+                    fetchLists(0, true);
+                }
             }
         } catch (e) {
             // Handle error
@@ -47,6 +62,46 @@ const Settings = () => {
     React.useEffect(() => {
         getSettings();
     }, []);
+
+    const fetchLists = async (offset = 0, reset = false) => {
+        setListsLoading(true);
+        let params = {
+            wlmi_nonce: appState.settings_nonce,
+            action: "wlmi_get_lists",
+            offset: offset,
+            count: 25
+        };
+
+        try {
+            let json = await postRequest(params);
+            let resJSON = getJSONData(json.data);
+            if (resJSON.success === true && resJSON.data) {
+                const newLists = resJSON.data.lists || [];
+                setLists(reset ? newLists : [...lists, ...newLists]);
+                setTotalLists(resJSON.data.total_items || 0);
+                setListOffset(offset + newLists.length);
+
+                // Set selected list if list_id exists in settings
+                if (settings.list_id && reset) {
+                    const selected = newLists.find(list => list.value === settings.list_id);
+                    if (selected) {
+                        setSelectedList(selected);
+                    }
+                }
+            } else {
+                alertifyToast(resJSON.data?.message || "Failed to fetch lists", false);
+            }
+        } catch (e) {
+            alertifyToast("Error fetching lists", false);
+        }
+        setListsLoading(false);
+    };
+
+    const handleLoadMore = () => {
+        if (listOffset < totalLists && !listsLoading) {
+            fetchLists(listOffset, false);
+        }
+    };
 
     const saveSettings = async (wlmi_nonce = appState.settings_nonce) => {
         let params = {
@@ -82,6 +137,8 @@ const Settings = () => {
             if (resJSON.success === true) {
                 alertifyToast(resJSON.data.message);
                 setIsConnected(true);
+                // Fetch lists after successful connection
+                fetchLists(0, true);
             } else {
                 alertifyToast(resJSON.data.message, false);
                 setIsConnected(false);
@@ -110,6 +167,11 @@ const Settings = () => {
                                 <ShimmerLoading height="h-12" width="w-2/12" />
                             </div>
                             <ShimmerLoading height="h-4" width="w-1/6" />
+                            <div className="mt-5">
+                                <ShimmerLoading height="h-4" width="w-1/5" />
+                                <ShimmerLoading height="h-12" width="w-full" />
+                                <ShimmerLoading height="h-3" width="w-2/5" />
+                            </div>
                         </div>
                     ) : (
                         <React.Fragment>
@@ -171,6 +233,35 @@ const Settings = () => {
                                                 : (labels.settings?.inactive || "Inactive")}
                                         </span>
                                     </div>
+
+                                    {/* List Selection */}
+                                    {isConnected && (
+                                        <div className="flex flex-col w-full mt-5">
+                                            <label className="text-dark font-medium text-sm mb-2">
+                                                {labels.settings?.list_label || "Select Mailchimp List"}
+                                            </label>
+                                            <ListSelect
+                                                id="mailchimp_list"
+                                                value={selectedList}
+                                                onChange={(selected) => {
+                                                    setSelectedList(selected);
+                                                    setSettings({
+                                                        ...settings,
+                                                        list_id: selected ? selected.value : ""
+                                                    });
+                                                }}
+                                                onLoadMore={handleLoadMore}
+                                                options={lists}
+                                                hasMore={listOffset < totalLists}
+                                                loading={listsLoading}
+                                                error={errorList.includes("list_id")}
+                                                placeholder={labels.settings?.list_placeholder || "Select a list"}
+                                            />
+                                            <p className="text-xs text-light mt-1">
+                                                {labels.settings?.list_description || "Choose the Mailchimp list where customers will be added"}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                         </React.Fragment>
                     )}

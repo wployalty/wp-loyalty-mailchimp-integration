@@ -43,6 +43,9 @@
     background-color: #fef4f45b !important;
 }
 
+#input-select-tag input {
+    box-shadow: none !important;
+}
 
 .toplevel_page_wp-loyalty-mailchimp-integration .ajs-error {
     font-family: Helvetica, Arial, sans-serif;

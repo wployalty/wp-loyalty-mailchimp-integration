@@ -29,6 +29,7 @@ class Router {
 			//save settings
 			add_action( 'wp_ajax_wlmi_launcher_save_settings', [ Settings::class, 'saveSettings' ] );
 			add_action( 'wp_ajax_wlmi_test_connection', [ Api::class, 'testConnection' ] );
+			add_action( 'wp_ajax_wlmi_get_lists', [ Api::class, 'getLists' ] );
 		}
 		add_filter( 'wlr_internal_addons_list', [ Common::class, 'addInternalAddons' ] );
 
