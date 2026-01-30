@@ -44,29 +44,29 @@
 }
 
 
-.toplevel_page_wll-loyalty-launcher .ajs-error {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-error {
     font-family: Helvetica, Arial, sans-serif;
     background: #F5425D;
-    box-shadow: 0px 4px 40px rgba(232, 13, 46, 0.3);
-    border-radius: 4px;
+    box-shadow: 0px 4px 40px rgba(245, 66, 93, 0.3);
+    border-radius: 10px;
     color: white;
     padding: 15px;
     font-size: 15px;
     font-weight: 500;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-success {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-success {
     font-family: Helvetica, Arial, sans-serif;
     background: #00C288;
-    box-shadow: 0px 4px 40px rgba(0, 245, 172, 0.3);
-    border-radius: 4px;
+    box-shadow: 0px 4px 40px rgba(0, 194, 136, 0.3);
+    border-radius: 10px;
     color: white;
     padding: 15px;
     font-size: 15px;
     font-weight: 500;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-dialog {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-dialog {
     font-family: Helvetica, Arial, sans-serif;
     width: 700px;
     max-width: 700px !important;
@@ -79,7 +79,7 @@
     border-radius: 8px !important;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-header {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-header {
     padding: 16px;
     margin: 0;
     color: #1D283D;
@@ -96,7 +96,7 @@
     box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.03), inset 0px -1px 0px #E7E7EF;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-body {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-body {
     font-family: Helvetica, Arial, sans-serif;
     background-color: white;
     display: flex;
@@ -109,7 +109,7 @@
     background-color: white;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-footer {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-footer {
     font-family: Helvetica, Arial, sans-serif;
     background-color: white;
     margin: 0;
@@ -123,13 +123,13 @@
     border-radius: 0 0 10px 10px;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-close {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-close {
     position: absolute;
     right: 0;
     top: 30px;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-content {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-content {
     color: #535863;
     font-size: 18px;
     font-weight: 500;
@@ -137,13 +137,13 @@
     padding-left: 0;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-buttons {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-buttons {
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-ok {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-ok {
     font-family: Helvetica, Arial, sans-serif;
     color: #ffffff;
     font-size: 14px;
@@ -154,7 +154,7 @@
     border-radius: 6px;
 }
 
-.toplevel_page_wll-loyalty-launcher .ajs-cancel {
+.toplevel_page_wp-loyalty-mailchimp-integration .ajs-cancel {
     font-family: Helvetica, Arial, sans-serif;
     color: #7A818F;
     font-size: 14px;
@@ -164,6 +164,20 @@
     padding: 14px 20px;
     background-color: #ffffff;
     border-radius: 6px;
+}
+
+.shimmer {
+    color: grey;
+    display: inline-block;
+    -webkit-mask: linear-gradient(-60deg, #000 30%, #0005, #000 70%) right/300% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 2.5s infinite;
+}
+
+@keyframes shimmer {
+    100% {
+        -webkit-mask-position: left
+    }
 }
 
 /*# sourceMappingURL=wll-admin.css.map */

@@ -21,23 +21,7 @@ class Settings {
 		}
 		$settings = SettingsHelper::gets();
 
-		$is_connected = false;
-		if ( ! empty( $settings['api_key'] ) && ! empty( $settings['server'] ) ) {
-			try {
-				$mailchimp = new \MailchimpMarketing\ApiClient();
-				$mailchimp->setConfig( [
-					'apiKey' => $settings['api_key'],
-					'server' => $settings['server']
-				] );
-				$response = $mailchimp->ping->get();
-				if ( isset( $response->health_status ) && $response->health_status == "Everything's Chimpy!" ) {
-					$is_connected = true;
-				}
-			} catch ( \Exception $e ) {
-				$is_connected = false;
-			}
-		}
-		$settings['connected'] = $is_connected;
+		$settings['connected'] = Api::checkConnection( $settings['api_key'] ?? '', $settings['server'] ?? '' );
 
 		wp_send_json_success( $settings );
 	}
@@ -79,40 +63,5 @@ class Settings {
 
 		update_option( 'wlmi_settings', $settings );
 		wp_send_json_success( [ 'message' => __( 'Settings saved!', 'wp-loyalty-mailchimp-integration' ) ] );
-	}
-
-	/**
-	 * Test connection.
-	 *
-	 * @return void
-	 */
-	public static function testConnection() {
-		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
-			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
-		}
-		$api_key = Input::get( 'api_key' );
-		if ( empty( $api_key ) ) {
-			wp_send_json_error( [ 'message' => __( 'API Key is required', 'wp-loyalty-mailchimp-integration' ) ] );
-		}
-
-		try {
-			$mailchimp = new \MailchimpMarketing\ApiClient();
-			$server    = 'us1';
-			if ( strpos( $api_key, '-' ) !== false ) {
-				$server = substr( $api_key, strpos( $api_key, '-' ) + 1 );
-			}
-			$mailchimp->setConfig( [
-				'apiKey' => $api_key,
-				'server' => $server
-			] );
-			$response = $mailchimp->ping->get();
-			if ( isset( $response->health_status ) && $response->health_status == "Everything's Chimpy!" ) {
-				wp_send_json_success( [ 'message' => __( 'Connected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
-			} else {
-				wp_send_json_error( [ 'message' => __( 'Connection failed', 'wp-loyalty-mailchimp-integration' ) ] );
-			}
-		} catch ( \Exception $e ) {
-			wp_send_json_error( [ 'message' => __( 'Connection failed', 'wp-loyalty-mailchimp-integration' ) ] );
-		}
 	}
 }

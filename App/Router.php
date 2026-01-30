@@ -4,6 +4,7 @@ namespace WLMI\App;
 
 use WLMI\App\Controller\Admin\Labels;
 use WLMI\App\Controller\Admin\Settings;
+use WLMI\App\Controller\Admin\Api;
 use WLMI\App\Controller\Common;
 
 defined( 'ABSPATH' ) or die;
@@ -27,7 +28,7 @@ class Router {
 			add_action( 'wp_ajax_wlmi_launcher_settings', [ Settings::class, 'getSettings' ] );
 			//save settings
 			add_action( 'wp_ajax_wlmi_launcher_save_settings', [ Settings::class, 'saveSettings' ] );
-			add_action( 'wp_ajax_wlmi_test_connection', [ Settings::class, 'testConnection' ] );
+			add_action( 'wp_ajax_wlmi_test_connection', [ Api::class, 'testConnection' ] );
 		}
 		add_filter( 'wlr_internal_addons_list', [ Common::class, 'addInternalAddons' ] );
 
