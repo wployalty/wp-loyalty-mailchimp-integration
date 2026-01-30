@@ -5,8 +5,6 @@ namespace WLMI\App;
 use WLMI\App\Controller\Admin\Labels;
 use WLMI\App\Controller\Admin\Settings;
 use WLMI\App\Controller\Common;
-use WLMI\App\Controller\Guest;
-use WLMI\App\Controller\Member;
 
 defined( 'ABSPATH' ) or die;
 

@@ -5,6 +5,7 @@ namespace WLMI\App\Controller\Admin;
 use WLMI\App\Helper\Input;
 use WLMI\App\Helper\Validation;
 use WLMI\App\Helper\WC;
+use WLMI\App\Helper\Settings as SettingsHelper;
 
 defined( 'ABSPATH' ) or die;
 
@@ -18,29 +19,25 @@ class Settings {
 		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
-		$settings = get_option( 'wlmi_mailchimp_settings', [] );
+		$settings = SettingsHelper::gets();
 
-		$isConnected = false;
-		if ( ! empty( $settings['api_key'] ) ) {
+		$is_connected = false;
+		if ( ! empty( $settings['api_key'] ) && ! empty( $settings['server'] ) ) {
 			try {
 				$mailchimp = new \MailchimpMarketing\ApiClient();
-				$server    = 'us1';
-				if ( strpos( $settings['api_key'], '-' ) !== false ) {
-					$server = substr( $settings['api_key'], strpos( $settings['api_key'], '-' ) + 1 );
-				}
 				$mailchimp->setConfig( [
 					'apiKey' => $settings['api_key'],
-					'server' => $server
+					'server' => $settings['server']
 				] );
 				$response = $mailchimp->ping->get();
 				if ( isset( $response->health_status ) && $response->health_status == "Everything's Chimpy!" ) {
-					$isConnected = true;
+					$is_connected = true;
 				}
 			} catch ( \Exception $e ) {
-				$isConnected = false;
+				$is_connected = false;
 			}
 		}
-		$settings['connected'] = $isConnected;
+		$settings['connected'] = $is_connected;
 
 		wp_send_json_success( $settings );
 	}
@@ -74,7 +71,13 @@ class Settings {
 			] );
 		}
 
-		update_option( 'wlmi_mailchimp_settings', $settings );
+		if ( ! empty( $settings['api_key'] ) && strpos( $settings['api_key'], '-' ) !== false ) {
+			$settings['server'] = substr( $settings['api_key'], strpos( $settings['api_key'], '-' ) + 1 );
+		} else {
+			$settings['server'] = '';
+		}
+
+		update_option( 'wlmi_settings', $settings );
 		wp_send_json_success( [ 'message' => __( 'Settings saved!', 'wp-loyalty-mailchimp-integration' ) ] );
 	}
 
