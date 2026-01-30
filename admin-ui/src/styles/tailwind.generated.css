@@ -543,7 +543,7 @@ video {
 .h-\[590px\] {
   height: 590px !important;
 }
-.h-\[48px\] {
+.h-12 {
   height: 48px !important;
 }
 .h-11 {
@@ -563,9 +563,6 @@ video {
 }
 .h-20 {
   height: 5rem !important;
-}
-.h-12 {
-  height: 48px !important;
 }
 .h-8 {
   height: 2rem !important;
@@ -668,11 +665,11 @@ video {
 .gap-1 {
   gap: 0.25rem !important;
 }
-.gap-2 {
-  gap: 0.5rem !important;
-}
 .gap-4 {
   gap: 1rem !important;
+}
+.gap-2 {
+  gap: 0.5rem !important;
 }
 .gap-2\.5 {
   gap: 0.625rem !important;

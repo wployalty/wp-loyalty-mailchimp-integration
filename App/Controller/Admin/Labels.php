@@ -68,12 +68,12 @@ class Labels {
 			'save'                         => __( 'Save Changes', 'wp-loyalty-mailchimp-integration' ),
 			'upgrade_text'                 => __( 'Upgrade to Pro', 'wp-loyalty-mailchimp-integration' ),
 			'buy_pro_url'                  => 'https://wployalty.net/pricing/?utm_campaign=wployalty-link&utm_medium=pro_url&utm_source=pricing',
-			'reset'                        => __( 'Reset', 'wp-loyalty-mailchimp-integration' ),
+
 			'back'                         => __( 'Back', 'wp-loyalty-mailchimp-integration' ),
 			'back_to_apps'                 => __( 'Back to WPLoyalty', 'wp-loyalty-mailchimp-integration' ),
 			'icon'                         => __( 'Icon', 'wp-loyalty-mailchimp-integration' ),
 			'icon_buttons'                 => [
-				'restore' => __( 'Restore Default', 'wp-loyalty-mailchimp-integration' ),
+
 				'browse'  => __( 'Browse Image', 'wp-loyalty-mailchimp-integration' ),
 			],
 			'background'                   => __( 'Background', 'wp-loyalty-mailchimp-integration' ),
@@ -88,7 +88,7 @@ class Labels {
 			'visibility'                   => __( 'Visibility', 'wp-loyalty-mailchimp-integration' ),
 			'show'                         => __( 'Show', 'wp-loyalty-mailchimp-integration' ),
 			'none'                         => __( 'Do not show', 'wp-loyalty-mailchimp-integration' ),
-			'restore_default'              => __( 'Restore Default', 'wp-loyalty-mailchimp-integration' ),
+
 			'browse_image'                 => __( 'Browse Image', 'wp-loyalty-mailchimp-integration' ),
 			'left'                         => __( 'Left', 'wp-loyalty-mailchimp-integration' ),
 			'right'                        => __( 'Right', 'wp-loyalty-mailchimp-integration' ),
@@ -104,7 +104,7 @@ class Labels {
 			'primary'                      => __( 'Primary', 'wp-loyalty-mailchimp-integration' ),
 			'secondary'                    => __( 'Secondary', 'wp-loyalty-mailchimp-integration' ),
 			'back_to_loyalty'              => __( 'Back to WPLoyalty', 'wp-loyalty-mailchimp-integration' ),
-			'reset_message'                => __( 'Reset Successfully', 'wp-loyalty-mailchimp-integration' ),
+
 			'theme_color'                  => __( 'Color', 'wp-loyalty-mailchimp-integration' ),
 			'no_result_found'              => __( 'No results found!', 'wp-loyalty-mailchimp-integration' ),
 			'toggle'                       => [
@@ -118,10 +118,7 @@ class Labels {
 			'banner'                       => __( 'Banner', 'wp-loyalty-mailchimp-integration' ),
 			'enabled'                      => __( 'Enabled', 'wp-loyalty-mailchimp-integration' ),
 			'disabled'                     => __( 'Disabled', 'wp-loyalty-mailchimp-integration' ),
-			'ok_text'                      => __( 'Yes, Reset', 'wp-loyalty-mailchimp-integration' ),
-			'cancel_text'                  => __( 'Cancel', 'wp-loyalty-mailchimp-integration' ),
-			'confirm_title'                => __( 'Reset Settings?', 'wp-loyalty-mailchimp-integration' ),
-			'confirm_description'          => __( 'Are you sure want to reset this settings?', 'wp-loyalty-mailchimp-integration' ),
+
 			'apply_button_text'            => __( 'Apply', 'wp-loyalty-mailchimp-integration' ),
 			'delete_text'                  => __( "delete", 'wp-loyalty-mailchimp-integration' ),
 		];
