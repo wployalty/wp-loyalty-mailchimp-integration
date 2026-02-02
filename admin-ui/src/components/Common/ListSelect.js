@@ -4,82 +4,159 @@ import Select from 'react-select';
 const ListSelect = ({
     value,
     onChange,
-    onLoadMore,
+    onSearch,
     options,
     hasMore,
     loading,
     error,
-    placeholder = "Select a list",
-    id
+    placeholder,
+    id,
+    searchPlaceholder,
+    noOptionsMessage,
+    loadingMessage,
+    scrollForMoreMessage
 }) => {
     const [menuIsOpen, setMenuIsOpen] = React.useState(false);
+    const [inputValue, setInputValue] = React.useState('');
+    const searchTimeoutRef = React.useRef(null);
 
-    // Add "Load More" option at the end if there are more items
-    const enhancedOptions = React.useMemo(() => {
-        if (!hasMore || loading) {
-            return options;
-        }
-        return [
-            ...options,
-            {
-                value: '__load_more__',
-                label: '🔄 Load More Lists...',
-                isLoadMore: true
+    // Debounced search handler
+    const handleInputChange = (newValue, { action }) => {
+        if (action === 'input-change') {
+            setInputValue(newValue);
+
+            // Clear existing timeout
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
             }
-        ];
-    }, [options, hasMore, loading]);
 
-    const handleChange = (selectedOption) => {
-        if (selectedOption && selectedOption.isLoadMore) {
-            // Trigger load more
-            onLoadMore();
-            // Keep menu open
-            setMenuIsOpen(true);
-        } else {
-            onChange(selectedOption);
-            setMenuIsOpen(false);
+            // Debounce search by 500ms
+            searchTimeoutRef.current = setTimeout(() => {
+                if (onSearch) {
+                    onSearch(newValue);
+                }
+            }, 500);
         }
+
+        return newValue;
     };
+
+    // Cleanup timeout on unmount
+    React.useEffect(() => {
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const customStyles = {
         option: (provided, state) => ({
             ...provided,
-            backgroundColor: state.data.isLoadMore
-                ? '#F6F6FE'
-                : state.isSelected
-                    ? '#4F47EB'
-                    : state.isFocused
-                        ? '#F6F6FE'
-                        : 'white',
-            color: state.data.isLoadMore
+            backgroundColor: state.isSelected
                 ? '#4F47EB'
-                : state.isSelected
-                    ? 'white'
-                    : '#1D2327',
-            fontWeight: state.data.isLoadMore ? '600' : '400',
-            cursor: state.data.isLoadMore ? 'pointer' : 'default',
+                : state.isFocused
+                    ? '#F6F6FE'
+                    : 'white',
+            color: state.isSelected
+                ? 'white'
+                : '#1D2327',
+            cursor: 'pointer',
             ':active': {
-                backgroundColor: state.data.isLoadMore ? '#E8E7FD' : provided[':active'].backgroundColor,
+                backgroundColor: '#E8E7FD',
             },
         }),
+        menu: (provided) => ({
+            ...provided,
+            zIndex: 9999,
+        }),
+        menuList: (provided) => ({
+            ...provided,
+            maxHeight: '300px',
+        }),
+    };
+
+    // Custom menu list with infinite scroll
+    const MenuList = (props) => {
+        const menuListRef = React.useRef(null);
+
+        const handleScroll = (e) => {
+            const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
+            if (bottom && hasMore && !loading && onSearch) {
+                // Trigger load more when scrolled to bottom
+                onSearch(inputValue, true); // true indicates "load more"
+            }
+        };
+
+        return (
+            <div
+                ref={menuListRef}
+                onScroll={handleScroll}
+                style={{
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                }}
+            >
+                {props.children}
+                {loading && (
+                    <div style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        color: '#4F47EB',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                    }}>
+                        {loadingMessage}
+                    </div>
+                )}
+                {hasMore && !loading && options.length > 0 && (
+                    <div style={{
+                        padding: '8px 12px',
+                        textAlign: 'center',
+                        color: '#6B7280',
+                        fontSize: '12px',
+                        borderTop: '1px solid #E5E7EB'
+                    }}>
+                        {scrollForMoreMessage}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
         <div className="w-full" id="input-select-tag">
             <Select
                 id={id}
-                options={enhancedOptions}
+                options={options}
                 className={`w-full focus:border-2 focus:border-primary ${error && "input-error"}`}
                 value={value}
-                onChange={handleChange}
+                onChange={(selected) => {
+                    onChange(selected);
+                    setMenuIsOpen(false);
+                }}
+                onInputChange={handleInputChange}
+                inputValue={inputValue}
                 isSearchable={true}
                 classNamePrefix="react_select"
                 placeholder={placeholder}
-                isLoading={loading}
+                isLoading={loading && options.length === 0}
                 menuIsOpen={menuIsOpen}
                 onMenuOpen={() => setMenuIsOpen(true)}
-                onMenuClose={() => setMenuIsOpen(false)}
+                onMenuClose={() => {
+                    setMenuIsOpen(false);
+                    setInputValue('');
+                }}
+                // Prevent auto-selection behavior
+                blurInputOnSelect={false}
+                closeMenuOnScroll={false}
+                isClearable={true}
+                controlShouldRenderValue={true}
+                // Only change value on explicit selection
+                tabSelectsValue={false}
+                openMenuOnFocus={false}
                 styles={customStyles}
+                components={{ MenuList }}
                 theme={(theme) => ({
                     ...theme,
                     borderRadius: 6,
@@ -89,7 +166,8 @@ const ListSelect = ({
                         primary: '#4F47EB',
                     },
                 })}
-                noOptionsMessage={() => loading ? 'Loading...' : 'No lists found'}
+                noOptionsMessage={() => loading ? loadingMessage : noOptionsMessage}
+                filterOption={() => true} // Disable client-side filtering since we're doing server-side
             />
         </div>
     );

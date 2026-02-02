@@ -131,17 +131,24 @@ class Labels {
 	 */
 	public static function getSettingsLabels() {
 		return [
-			'title'            => __( 'Mailchimp Settings', 'wp-loyalty-mailchimp-integration' ),
-			'api_key'          => __( 'Mailchimp API Key', 'wp-loyalty-mailchimp-integration' ),
-			'placeholder'      => __( 'Enter your Mailchimp API Key', 'wp-loyalty-mailchimp-integration' ),
-			'description'      => __( 'You can find your API key in your Mailchimp account settings.', 'wp-loyalty-mailchimp-integration' ),
-			'status'           => __( 'Status', 'wp-loyalty-mailchimp-integration' ),
-			'active'           => __( 'Active', 'wp-loyalty-mailchimp-integration' ),
-			'inactive'         => __( 'Inactive', 'wp-loyalty-mailchimp-integration' ),
-			'test_connection'  => __( 'Test Connection', 'wp-loyalty-mailchimp-integration' ),
-			'list_label'       => __( 'Select Mailchimp List', 'wp-loyalty-mailchimp-integration' ),
-			'list_placeholder' => __( 'Select a list', 'wp-loyalty-mailchimp-integration' ),
-			'list_description' => __( 'Choose the Mailchimp list where customers will be added', 'wp-loyalty-mailchimp-integration' ),
+			'title'                      => __( 'Mailchimp Settings', 'wp-loyalty-mailchimp-integration' ),
+			'api_key'                    => __( 'Mailchimp API Key', 'wp-loyalty-mailchimp-integration' ),
+			'placeholder'                => __( 'Enter your Mailchimp API Key', 'wp-loyalty-mailchimp-integration' ),
+			'description'                => __( 'You can find your API key in your Mailchimp account settings.', 'wp-loyalty-mailchimp-integration' ),
+			'status'                     => __( 'Status', 'wp-loyalty-mailchimp-integration' ),
+			'active'                     => __( 'Active', 'wp-loyalty-mailchimp-integration' ),
+			'inactive'                   => __( 'Inactive', 'wp-loyalty-mailchimp-integration' ),
+			'test_connection'            => __( 'Test Connection', 'wp-loyalty-mailchimp-integration' ),
+			'list_label'                 => __( 'Select Mailchimp List', 'wp-loyalty-mailchimp-integration' ),
+			'list_placeholder'           => __( 'Search or select a list', 'wp-loyalty-mailchimp-integration' ),
+			'list_description'           => __( 'Choose the Mailchimp list where customers will be added', 'wp-loyalty-mailchimp-integration' ),
+			// Search-related labels
+			'search_placeholder'         => __( 'Type to search lists...', 'wp-loyalty-mailchimp-integration' ),
+			'loading_message'            => __( 'Loading...', 'wp-loyalty-mailchimp-integration' ),
+			'searching_message'          => __( 'Searching through lists...', 'wp-loyalty-mailchimp-integration' ),
+			'no_results_message'         => __( 'No lists found', 'wp-loyalty-mailchimp-integration' ),
+			'searching_progress_message' => __( 'Searching through %s lists...', 'wp-loyalty-mailchimp-integration' ), // %s will be replaced with total count
+			'scroll_for_more_message'    => __( 'Scroll for more...', 'wp-loyalty-mailchimp-integration' ),
 		];
 	}
 

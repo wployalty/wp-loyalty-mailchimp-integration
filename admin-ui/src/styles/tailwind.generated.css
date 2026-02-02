@@ -1061,13 +1061,13 @@ video {
   --tw-text-opacity: 1 !important;
   color: rgba(75, 85, 99, var(--tw-text-opacity)) !important;
 }
-.text-blue_primary {
-  --tw-text-opacity: 1 !important;
-  color: rgba(79, 71, 235, var(--tw-text-opacity)) !important;
-}
 .text-primary {
   --tw-text-opacity: 1 !important;
   color: rgba(111, 56, 197, var(--tw-text-opacity)) !important;
+}
+.text-blue_primary {
+  --tw-text-opacity: 1 !important;
+  color: rgba(79, 71, 235, var(--tw-text-opacity)) !important;
 }
 .text-redd {
   --tw-text-opacity: 1 !important;

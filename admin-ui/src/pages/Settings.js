@@ -25,9 +25,11 @@ const Settings = () => {
     // List selection state
     const [lists, setLists] = React.useState([]);
     const [listsLoading, setListsLoading] = React.useState(false);
-    const [listOffset, setListOffset] = React.useState(0);
+    const [nextOffset, setNextOffset] = React.useState(0);
     const [totalLists, setTotalLists] = React.useState(0);
     const [selectedList, setSelectedList] = React.useState(null);
+    const [currentSearchTerm, setCurrentSearchTerm] = React.useState('');
+    const [isAutoFetching, setIsAutoFetching] = React.useState(false);
 
     const getSettings = async (wlmi_nonce = appState.settings_nonce) => {
         setLoading(true);
@@ -47,9 +49,9 @@ const Settings = () => {
                  setSettings(loadedSettings);
                 setIsConnected(loadedSettings.connected || false);
 
-                // If connected, fetch lists
+                // If connected, fetch initial lists
                 if (loadedSettings.connected) {
-                    fetchLists(0, true);
+                    fetchLists('', 0, true);
                 }
             }
         } catch (e) {
@@ -63,43 +65,90 @@ const Settings = () => {
         getSettings();
     }, []);
 
-    const fetchLists = async (offset = 0, reset = false) => {
+    /**
+     * Fetch lists from Mailchimp with search support
+     * @param {string} searchTerm - Search term to filter lists
+     * @param {number} offset - Offset for pagination
+     * @param {boolean} reset - Whether to reset the list or append
+     * @param {boolean} isLoadMore - Whether this is a "load more" action
+     */
+    const fetchLists = async (searchTerm = '', offset = 0, reset = false, isLoadMore = false) => {
         setListsLoading(true);
+
         let params = {
             wlmi_nonce: appState.settings_nonce,
             action: "wlmi_get_lists",
             offset: offset,
-            count: 25
+            count: 100,
+            search_term: searchTerm
         };
 
         try {
             let json = await postRequest(params);
             let resJSON = getJSONData(json.data);
-            if (resJSON.success === true && resJSON.data) {
-                const newLists = resJSON.data.lists || [];
-                setLists(reset ? newLists : [...lists, ...newLists]);
-                setTotalLists(resJSON.data.total_items || 0);
-                setListOffset(offset + newLists.length);
 
-                // Set selected list if list_id exists in settings
-                if (settings.list_id && reset) {
-                    const selected = newLists.find(list => list.value === settings.list_id);
+            if (resJSON.success === true && resJSON.data) {
+                const newResults = resJSON.data.results || [];
+                const hasMore = resJSON.data.has_more || false;
+                const nextOff = resJSON.data.next_offset || 0;
+                const total = resJSON.data.total_items || 0;
+
+                // Update lists
+                if (reset) {
+                    setLists(newResults);
+                } else {
+                    setLists(prevLists => [...prevLists, ...newResults]);
+                }
+
+                setTotalLists(total);
+                setNextOffset(nextOff);
+                setCurrentSearchTerm(searchTerm);
+
+                // Set selected list if list_id exists in settings (only on initial load)
+                if (settings.list_id && reset && !searchTerm) {
+                    const selected = newResults.find(list => list.value === settings.list_id);
                     if (selected) {
                         setSelectedList(selected);
                     }
                 }
+
+                // CRITICAL: Recursive auto-fetch logic
+                // If searching and no results found but more data available, automatically fetch next batch
+                if (searchTerm && newResults.length === 0 && hasMore && !isLoadMore) {
+                    setIsAutoFetching(true);
+                    // Automatically fetch the next batch
+                    setTimeout(() => {
+                        fetchLists(searchTerm, nextOff, false, false);
+                    }, 100); // Small delay to prevent overwhelming the server
+                } else {
+                    setIsAutoFetching(false);
+                }
             } else {
                 alertifyToast(resJSON.data?.message || "Failed to fetch lists", false);
+                setIsAutoFetching(false);
             }
         } catch (e) {
             alertifyToast("Error fetching lists", false);
+            setIsAutoFetching(false);
+        } finally {
+            setListsLoading(false);
         }
-        setListsLoading(false);
     };
 
-    const handleLoadMore = () => {
-        if (listOffset < totalLists && !listsLoading) {
-            fetchLists(listOffset, false);
+    /**
+     * Handle search from ListSelect component
+     * @param {string} searchTerm - The search term
+     * @param {boolean} isLoadMore - Whether this is a load more action (scroll to bottom)
+     */
+    const handleSearch = (searchTerm, isLoadMore = false) => {
+        if (isLoadMore) {
+            // Load more: append to existing results
+            if (nextOffset < totalLists && !listsLoading) {
+                fetchLists(currentSearchTerm, nextOffset, false, true);
+            }
+        } else {
+            // New search: reset results
+            fetchLists(searchTerm, 0, true, false);
         }
     };
 
@@ -155,7 +204,7 @@ const Settings = () => {
                 title={labels.settings?.title || "Mailchimp Settings"} 
                 saveAction={() => saveSettings()}
             />
-            
+
             <div className="flex gap-x-6 items-start w-full h-[590px]">
                 <div className="w-full h-full flex flex-col border border-card_border rounded-xl bg-white p-6">
                     {loading ? (
@@ -250,16 +299,27 @@ const Settings = () => {
                                                         list_id: selected ? selected.value : ""
                                                     });
                                                 }}
-                                                onLoadMore={handleLoadMore}
+                                                onSearch={handleSearch}
                                                 options={lists}
-                                                hasMore={listOffset < totalLists}
-                                                loading={listsLoading}
+                                                hasMore={nextOffset < totalLists}
+                                                loading={listsLoading || isAutoFetching}
                                                 error={errorList.includes("list_id")}
-                                                placeholder={labels.settings?.list_placeholder || "Select a list"}
+                                                placeholder={labels.settings?.list_placeholder || "Search or select a list"}
+                                                searchPlaceholder={labels.settings?.search_placeholder || "Type to search lists..."}
+                                                loadingMessage={isAutoFetching
+                                                    ? (labels.settings?.searching_message || "Searching through lists...")
+                                                    : (labels.settings?.loading_message || "Loading...")}
+                                                noOptionsMessage={labels.settings?.no_results_message || "No lists found"}
+                                                scrollForMoreMessage={labels.settings?.scroll_for_more_message || "Scroll for more..."}
                                             />
                                             <p className="text-xs text-light mt-1">
                                                 {labels.settings?.list_description || "Choose the Mailchimp list where customers will be added"}
                                             </p>
+                                            {isAutoFetching && (
+                                                <p className="text-xs text-primary mt-1 font-medium">
+                                                    🔍 {(labels.settings?.searching_progress_message || "Searching through %s lists...").replace('%s', totalLists)}
+                                                </p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
