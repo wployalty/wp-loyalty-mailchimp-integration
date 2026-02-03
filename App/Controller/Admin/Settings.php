@@ -2,6 +2,7 @@
 
 namespace WLMI\App\Controller\Admin;
 
+use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Input;
 use WLMI\App\Helper\Validation;
 use WLMI\App\Helper\WC;
@@ -21,7 +22,7 @@ class Settings {
 		}
 		$settings = SettingsHelper::gets();
 
-		$settings['connected'] = Api::checkConnection( $settings['api_key'] ?? '', $settings['server'] ?? '' );
+		$settings['connected'] = MailchimpHelper::checkConnection( $settings['api_key'] ?? '', $settings['server'] ?? '' );
 
 		wp_send_json_success( $settings );
 	}
@@ -59,6 +60,18 @@ class Settings {
 			$settings['server'] = substr( $settings['api_key'], strpos( $settings['api_key'], '-' ) + 1 );
 		} else {
 			$settings['server'] = '';
+		}
+
+		$existing_settings = SettingsHelper::gets();
+		$list_id           = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
+		$old_list_id       = isset( $existing_settings['list_id'] ) ? (string) $existing_settings['list_id'] : '';
+		$list_changed      = ! empty( $list_id ) && $list_id !== $old_list_id;
+
+		if ( $list_changed ) {
+			$merge_fields_ready = MailchimpHelper::ensureMergeFields( $list_id, $settings );
+			if ( ! $merge_fields_ready ) {
+				wp_send_json_error( [ 'message' => __( 'Unable to setup Mailchimp merge fields for the selected list.', 'wp-loyalty-mailchimp-integration' ) ] );
+			}
 		}
 
 		update_option( 'wlmi_settings', $settings );

@@ -18,7 +18,8 @@ class Settings {
 	public static function getDefaultSettings(): array {
 		return [
 			'api_key' => '',
-			'server'  => ''
+			'server'  => '',
+			'list_id' => ''
 		];
 	}
 }

@@ -6,6 +6,7 @@ use WLMI\App\Controller\Admin\Labels;
 use WLMI\App\Controller\Admin\Settings;
 use WLMI\App\Controller\Admin\Api;
 use WLMI\App\Controller\Common;
+use WLMI\App\Controller\Sync;
 
 defined( 'ABSPATH' ) or die;
 
@@ -32,6 +33,7 @@ class Router {
 			add_action( 'wp_ajax_wlmi_get_lists', [ Api::class, 'getLists' ] );
 		}
 		add_filter( 'wlr_internal_addons_list', [ Common::class, 'addInternalAddons' ] );
+		add_action( 'wlr_customer_points_balance_changed', [ Sync::class, 'syncMember' ], 10, 6 );
 
 
 	}

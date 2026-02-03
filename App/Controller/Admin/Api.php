@@ -2,6 +2,7 @@
 
 namespace WLMI\App\Controller\Admin;
 
+use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Input;
 use WLMI\App\Helper\WC;
 use WLMI\App\Helper\Settings as SettingsHelper;
@@ -23,47 +24,12 @@ class Api {
 			wp_send_json_error( [ 'message' => __( 'API Key is required', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
 
-		$is_connected = self::checkConnection( $api_key );
+		$is_connected = MailchimpHelper::checkConnection( $api_key );
 
 		if ( $is_connected ) {
 			wp_send_json_success( [ 'message' => __( 'Connected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
 		} else {
 			wp_send_json_error( [ 'message' => __( 'Connection failed', 'wp-loyalty-mailchimp-integration' ) ] );
-		}
-	}
-
-	/**
-	 * Check connection.
-	 *
-	 * @param string $api_key
-	 * @param string $server
-	 *
-	 * @return bool
-	 */
-	public static function checkConnection( $api_key, $server = '' ) {
-		if ( empty( $api_key ) ) {
-			return false;
-		}
-
-		if ( empty( $server ) ) {
-			if ( strpos( $api_key, '-' ) !== false ) {
-				$server = substr( $api_key, strpos( $api_key, '-' ) + 1 );
-			} else {
-				$server = 'us1';
-			}
-		}
-
-		try {
-			$mailchimp = new \MailchimpMarketing\ApiClient();
-			$mailchimp->setConfig( [
-				'apiKey' => $api_key,
-				'server' => $server
-			] );
-			$response = $mailchimp->ping->get();
-
-			return ( isset( $response->health_status ) && $response->health_status == "Everything's Chimpy!" );
-		} catch ( \Exception $e ) {
-			return false;
 		}
 	}
 
@@ -90,12 +56,6 @@ class Api {
 		}
 
 		try {
-			$mailchimp = new \MailchimpMarketing\ApiClient();
-			$mailchimp->setConfig( [
-				'apiKey' => $settings['api_key'],
-				'server' => $settings['server']
-			] );
-
 			$results       = [];
 			$current_offset = $offset;
 			$total_items    = 0;
@@ -106,7 +66,10 @@ class Api {
 			while ( $batches_fetched < $max_batches ) {
 				set_time_limit( 30 );
 
-				$response = $mailchimp->lists->getAllLists( null, null, (string) $batch_size, (string) $current_offset );
+				$response = MailchimpHelper::getListBatch( $settings, $batch_size, $current_offset );
+				if ( empty( $response ) ) {
+					break;
+				}
 
 				if ( ! isset( $response->lists ) || ! is_array( $response->lists ) ) {
 					break;

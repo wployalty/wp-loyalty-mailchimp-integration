@@ -21,6 +21,7 @@ const Settings = () => {
     const [errorList, setErrorList] = React.useState([]);
     const [errors, setErrors] = React.useState({});
     const [isConnected, setIsConnected] = React.useState(false);
+    const [settingsSaved, setSettingsSaved] = React.useState(false);
 
     // List selection state
     const [lists, setLists] = React.useState([]);
@@ -30,6 +31,8 @@ const Settings = () => {
     const [selectedList, setSelectedList] = React.useState(null);
     const [currentSearchTerm, setCurrentSearchTerm] = React.useState('');
     const [isAutoFetching, setIsAutoFetching] = React.useState(false);
+    const searchingForListIdRef = React.useRef(null);
+    const listSearchBatchCountRef = React.useRef(0);
 
     const getSettings = async (wlmi_nonce = appState.settings_nonce) => {
         setLoading(true);
@@ -48,11 +51,18 @@ const Settings = () => {
                  
                  setSettings(loadedSettings);
                 setIsConnected(loadedSettings.connected || false);
+                // Only mark as saved if API key actually exists in saved settings
+                // This prevents showing list selector when settings are deleted but defaults are returned
+                const hasSavedApiKey = loadedSettings.api_key && loadedSettings.api_key.trim() !== "";
+                setSettingsSaved(hasSavedApiKey);
 
-                // If connected, fetch initial lists
-                if (loadedSettings.connected) {
-                    fetchLists('', 0, true);
+                // If connected and settings are saved, fetch initial lists
+                if (loadedSettings.connected && hasSavedApiKey) {
+                    fetchLists('', 0, true, false, loadedSettings.list_id);
                 }
+            } else {
+                // No settings found, mark as not saved
+                setSettingsSaved(false);
             }
         } catch (e) {
             // Handle error
@@ -71,9 +81,16 @@ const Settings = () => {
      * @param {number} offset - Offset for pagination
      * @param {boolean} reset - Whether to reset the list or append
      * @param {boolean} isLoadMore - Whether this is a "load more" action
+     * @param {string} listIdToSelect - Optional list_id to select after fetching
      */
-    const fetchLists = async (searchTerm = '', offset = 0, reset = false, isLoadMore = false) => {
+    const fetchLists = async (searchTerm = '', offset = 0, reset = false, isLoadMore = false, listIdToSelect = null) => {
         setListsLoading(true);
+
+        // Track if we're searching for a specific list
+        if (listIdToSelect && reset) {
+            searchingForListIdRef.current = listIdToSelect;
+            listSearchBatchCountRef.current = 0;
+        }
 
         let params = {
             wlmi_nonce: appState.settings_nonce,
@@ -104,11 +121,30 @@ const Settings = () => {
                 setNextOffset(nextOff);
                 setCurrentSearchTerm(searchTerm);
 
-                // Set selected list if list_id exists in settings (only on initial load)
-                if (settings.list_id && reset && !searchTerm) {
-                    const selected = newResults.find(list => list.value === settings.list_id);
+                // Set selected list if list_id exists (only on initial load or when explicitly provided)
+                const listIdToCheck = listIdToSelect !== null ? listIdToSelect : (searchingForListIdRef.current || (reset && !searchTerm ? settings.list_id : null));
+                
+                // Check if we're looking for a specific list (either passed or from ref)
+                const isSearchingForList = searchingForListIdRef.current !== null || (listIdToSelect !== null && reset && !searchTerm);
+                
+                if (isSearchingForList && listIdToCheck) {
+                    const selected = newResults.find(list => list.value === listIdToCheck);
                     if (selected) {
                         setSelectedList(selected);
+                        searchingForListIdRef.current = null; // Found it, stop searching
+                        listSearchBatchCountRef.current = 0;
+                    } else if (hasMore && listSearchBatchCountRef.current < 3) {
+                        // If list not found in current batch but more available, continue searching
+                        // Limit to 3 batches to avoid infinite loops
+                        listSearchBatchCountRef.current++;
+                        const listIdToContinueSearching = searchingForListIdRef.current || listIdToCheck;
+                        setTimeout(() => {
+                            fetchLists(searchTerm, nextOff, false, false, listIdToContinueSearching);
+                        }, 100);
+                    } else if (listSearchBatchCountRef.current >= 3) {
+                        // Stop searching after 3 batches
+                        searchingForListIdRef.current = null;
+                        listSearchBatchCountRef.current = 0;
                     }
                 }
 
@@ -165,6 +201,10 @@ const Settings = () => {
             alertifyToast(resJSON.data.message);
             setErrorList([]);
             setErrors({});
+            // Only mark as saved if API key exists in the settings being saved
+            const hasApiKey = settings.api_key && settings.api_key.trim() !== "";
+            setSettingsSaved(hasApiKey);
+            // Reload settings to get the connected status and fetch lists if connected
             getSettings();
         } else {
             setErrors(resJSON.data);
@@ -186,8 +226,8 @@ const Settings = () => {
             if (resJSON.success === true) {
                 alertifyToast(resJSON.data.message);
                 setIsConnected(true);
-                // Fetch lists after successful connection
-                fetchLists(0, true);
+                // Don't fetch lists here - only fetch after settings are saved
+                // The list selector will only be visible after settings are saved
             } else {
                 alertifyToast(resJSON.data.message, false);
                 setIsConnected(false);
@@ -284,7 +324,7 @@ const Settings = () => {
                                     </div>
 
                                     {/* List Selection */}
-                                    {isConnected && (
+                                    {isConnected && settingsSaved && (
                                         <div className="flex flex-col w-full mt-5">
                                             <label className="text-dark font-medium text-sm mb-2">
                                                 {labels.settings?.list_label || "Select Mailchimp List"}
