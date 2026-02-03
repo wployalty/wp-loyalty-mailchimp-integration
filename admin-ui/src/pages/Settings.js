@@ -4,9 +4,10 @@ import ShimmerLoading from "../components/Common/ShimmerLoading";
 import ListSelect from "../components/Common/ListSelect";
 import { CommonContext, UiLabelContext } from "../Context";
 import {postRequest} from "../components/Common/postRequest";
-import { alertifyToast, errorDisplayer, getJSONData } from "../helpers/utilities";
+import { alertifyToast, errorDisplayer, getJSONData, getChosenLabel } from "../helpers/utilities";
 import Input from "../components/Common/Input";
 import Button from "../components/Common/Button";
+import DropdownWrapper from "../components/Common/DropdownWrapper";
 
 const Settings = () => {
     const {appState} = React.useContext(CommonContext);
@@ -14,7 +15,8 @@ const Settings = () => {
 
     const [settings, setSettings] = React.useState({
         api_key: "",
-        list_id: ""
+        list_id: "",
+        migration_choice: ""
     });
     const [loading, setLoading] = React.useState(true);
     const [testLoading, setTestLoading] = React.useState(false);
@@ -48,6 +50,10 @@ const Settings = () => {
                  let loadedSettings = resJSON.data;
                  if (!loadedSettings.api_key) loadedSettings.api_key = ""; 
                 if (!loadedSettings.list_id) loadedSettings.list_id = "";
+                if (!loadedSettings.migration_choice) loadedSettings.migration_choice = "";
+                if (typeof loadedSettings.wlmi_request_migration_from_admin === 'undefined') {
+                    loadedSettings.wlmi_request_migration_from_admin = false;
+                }
                  
                  setSettings(loadedSettings);
                 setIsConnected(loadedSettings.connected || false);
@@ -360,6 +366,32 @@ const Settings = () => {
                                                     🔍 {(labels.settings?.searching_progress_message || "Searching through %s lists...").replace('%s', totalLists)}
                                                 </p>
                                             )}
+                                        </div>
+                                    )}
+
+                                    {/* Migration Choice Dropdown */}
+                                    {isConnected && settingsSaved && settings.wlmi_request_migration_from_admin && settings.list_id && (
+                                        <div className="flex flex-col w-full mt-5">
+                                            <label className="text-dark font-medium text-sm mb-2">
+                                                {labels.settings?.migration_label || "Migration Choice"}
+                                            </label>
+                                            <DropdownWrapper
+                                                options={labels.settings?.migration_options || []}
+                                                value={settings.migration_choice || ''}
+                                                handleDropDownClick={(item) => {
+                                                    setSettings({
+                                                        ...settings,
+                                                        migration_choice: item.value
+                                                    });
+                                                }}
+                                                label={settings.migration_choice 
+                                                    ? getChosenLabel(labels.settings?.migration_options || [], settings.migration_choice) || labels.settings?.migration_placeholder
+                                                    : (labels.settings?.migration_placeholder || "Select migration choice")}
+                                                width="w-full"
+                                            />
+                                            <p className="text-xs text-light mt-1">
+                                                {labels.settings?.migration_description || "Choose your migration option"}
+                                            </p>
                                         </div>
                                     )}
                                 </div>

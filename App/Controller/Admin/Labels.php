@@ -149,6 +149,14 @@ class Labels {
 			'no_results_message'         => __( 'No lists found', 'wp-loyalty-mailchimp-integration' ),
 			'searching_progress_message' => __( 'Searching through %s lists...', 'wp-loyalty-mailchimp-integration' ), // %s will be replaced with total count
 			'scroll_for_more_message'    => __( 'Scroll for more...', 'wp-loyalty-mailchimp-integration' ),
+			// Migration choice labels
+			'migration_label'            => __( 'Migration existing users?', 'wp-loyalty-mailchimp-integration' ),
+			'migration_placeholder'      => __( 'Select migration choice', 'wp-loyalty-mailchimp-integration' ),
+			'migration_description'      => __( 'Choose your migration option, by default users added when their point updated', 'wp-loyalty-mailchimp-integration' ),
+			'migration_options'          => [
+				[ 'label' => __( 'Yes', 'wp-loyalty-mailchimp-integration' ), 'value' => 'yes' ],
+				[ 'label' => __( 'No', 'wp-loyalty-mailchimp-integration' ), 'value' => 'no' ],
+			],
 		];
 	}
 

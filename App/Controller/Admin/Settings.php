@@ -66,12 +66,21 @@ class Settings {
 		$list_id           = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
 		$old_list_id       = isset( $existing_settings['list_id'] ) ? (string) $existing_settings['list_id'] : '';
 		$list_changed      = ! empty( $list_id ) && $list_id !== $old_list_id;
+		$list_saved_first_time = ! empty( $list_id ) && empty( $old_list_id );
 
 		if ( $list_changed ) {
 			$merge_fields_ready = MailchimpHelper::ensureMergeFields( $list_id, $settings );
 			if ( ! $merge_fields_ready ) {
 				wp_send_json_error( [ 'message' => __( 'Unable to setup Mailchimp merge fields for the selected list.', 'wp-loyalty-mailchimp-integration' ) ] );
 			}
+		}
+
+		// Set migration flag when list is saved for the first time or changed
+		if ( $list_saved_first_time || $list_changed ) {
+			$settings['wlmi_request_migration_from_admin'] = true;
+		} else {
+			// Preserve existing flag value if list hasn't changed
+			$settings['wlmi_request_migration_from_admin'] = false;
 		}
 
 		update_option( 'wlmi_settings', $settings );
