@@ -7,6 +7,7 @@ use WLMI\App\Helper\Input;
 use WLMI\App\Helper\Validation;
 use WLMI\App\Helper\WC;
 use WLMI\App\Helper\Settings as SettingsHelper;
+use WLMI\App\Controller\MigrationBatch;
 
 defined( 'ABSPATH' ) or die;
 
@@ -84,6 +85,7 @@ class Settings {
 		}
 
 		update_option( 'wlmi_settings', $settings );
+		MigrationBatch::scheduleBatches( $settings );
 		wp_send_json_success( [ 'message' => __( 'Settings saved!', 'wp-loyalty-mailchimp-integration' ) ] );
 	}
 }

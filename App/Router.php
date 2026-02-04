@@ -6,6 +6,7 @@ use WLMI\App\Controller\Admin\Labels;
 use WLMI\App\Controller\Admin\Settings;
 use WLMI\App\Controller\Admin\Api;
 use WLMI\App\Controller\Common;
+use WLMI\App\Controller\MigrationBatch;
 use WLMI\App\Controller\Sync;
 
 defined( 'ABSPATH' ) or die;
@@ -34,6 +35,7 @@ class Router {
 		}
 		add_filter( 'wlr_internal_addons_list', [ Common::class, 'addInternalAddons' ] );
 		add_action( 'wlr_customer_points_balance_changed', [ Sync::class, 'syncMember' ], 10, 6 );
+		add_action( 'wlmi_process_mailchimp_migration_batch', [ MigrationBatch::class, 'processBatch' ], 10, 1 );
 
 
 	}

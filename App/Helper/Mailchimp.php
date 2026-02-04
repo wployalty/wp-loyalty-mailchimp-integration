@@ -82,6 +82,32 @@ class Mailchimp {
 	}
 
 	/**
+	 * Start a Mailchimp batch request.
+	 *
+	 * @param array $settings
+	 * @param array $operations
+	 *
+	 * @return object|null
+	 */
+	public static function startBatch( array $settings, array $operations ) {
+		if ( empty( $operations ) ) {
+			return null;
+		}
+
+		$mailchimp = self::getClientFromSettings( $settings );
+		if ( empty( $mailchimp ) ) {
+			return null;
+		}
+
+		try {
+			return $mailchimp->batches->start( [ 'operations' => $operations ] );
+		} catch ( \Exception $e ) {
+			wc_get_logger()->add( 'wlmi', 'Mailchimp batch start failed: ' . $e->getMessage() );
+			return null;
+		}
+	}
+
+	/**
 	 * Ensure required merge fields exist for list.
 	 *
 	 * @param string $list_id
