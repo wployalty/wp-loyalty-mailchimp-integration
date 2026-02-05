@@ -82,6 +82,16 @@ class MigrationBatch {
 				break;
 			}
 		}
+
+		// Schedule error check job after all batches are scheduled (6 hours after last batch)
+		if ( $batch_index > 0 ) {
+			$error_check_time = time() + ( $batch_index * 120 ) + ( 6 * HOUR_IN_SECONDS );
+			$error_check_args = [ [ 'list_id' => $list_id ] ];
+			$error_check_group = 'wlmi_migration_error_check';
+			if ( false === as_next_scheduled_action( 'wlmi_check_migration_errors', $error_check_args, $error_check_group ) ) {
+				as_schedule_single_action( $error_check_time, 'wlmi_check_migration_errors', $error_check_args, $error_check_group );
+			}
+		}
 	}
 
 	/**
@@ -152,7 +162,7 @@ class MigrationBatch {
 			$operations[] = [
 				'method'       => 'POST',
 				'path'         => "/lists/{$list_id}/members",
-				'operation_id' => isset( $user->id ) ? (string) $user->id : $user_email,
+				'operation_id' => $user_email,
 				'body'         => wp_json_encode( [
 					'email_address' => $user_email,
 					'status_if_new' => 'subscribed',
@@ -174,6 +184,113 @@ class MigrationBatch {
 		if ( empty( $response ) ) {
 			wc_get_logger()->add( 'wlmi', 'Mailchimp batch migration failed for start_id: ' . $start_id );
 			return;
+		}
+
+		// Store batch ID in transient (expires in 30 minutes) and option (for error tracking)
+		if ( isset( $response->id ) ) {
+			$batch_id = (string) $response->id;
+			$transient_key = 'wlmi_batch_' . $batch_id;
+			set_transient( $transient_key, $response, 30 * MINUTE_IN_SECONDS );
+			
+			// Store batch ID in option for error tracking
+			$option_key = 'wlmi_migration_batches_' . $list_id;
+			$batch_ids = get_option( $option_key, [] );
+			if ( ! in_array( $batch_id, $batch_ids, true ) ) {
+				$batch_ids[] = $batch_id;
+				update_option( $option_key, $batch_ids );
+			}
+		}
+	}
+
+	/**
+	 * Check migration errors and download error files.
+	 *
+	 * @param array $job_data
+	 *
+	 * @return void
+	 */
+	public static function checkMigrationErrors( $job_data ) {
+		if ( empty( $job_data ) || ! is_array( $job_data ) ) {
+			return;
+		}
+		$list_id = isset( $job_data['list_id'] ) ? (string) $job_data['list_id'] : '';
+		if ( empty( $list_id ) ) {
+			return;
+		}
+
+		$settings = SettingsHelper::gets();
+		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
+			wc_get_logger()->add( 'wlmi', 'Mailchimp settings missing for error check.' );
+			return;
+		}
+
+		// Get all batch IDs for this list
+		$option_key = 'wlmi_migration_batches_' . $list_id;
+		$batch_ids = get_option( $option_key, [] );
+		if ( empty( $batch_ids ) || ! is_array( $batch_ids ) ) {
+			return;
+		}
+
+		// Create log directory structure: wp-content/wlmi-migration-logs/{list_id}/{batch_id}/
+		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		wp_mkdir_p( $log_base_dir );
+
+		$has_errors = false;
+
+		foreach ( $batch_ids as $batch_id ) {
+			$batch_id = (string) $batch_id;
+			$status = MailchimpHelper::getBatchStatus( $settings, $batch_id );
+			
+			if ( empty( $status ) ) {
+				continue;
+			}
+
+			// Log full status check response
+			wc_get_logger()->add( 'wlmi', 'Mailchimp batch status check for batch_id ' . $batch_id . ' - Full response: ' . wp_json_encode( $status, JSON_PRETTY_PRINT ) );
+
+			// Check if batch has errors
+			$errored_operations = isset( $status->errored_operations ) ? (int) $status->errored_operations : 0;
+			if ( $errored_operations > 0 && isset( $status->response_body_url ) ) {
+				$has_errors = true;
+				
+				// Create batch-specific directory
+				$batch_log_dir = $log_base_dir . $list_id . '/' . $batch_id . '/';
+				wp_mkdir_p( $batch_log_dir );
+
+				// Download the error file
+				$download_url = $status->response_body_url;
+				$response = wp_remote_get( $download_url, [
+					'timeout' => 300,
+					'sslverify' => true,
+				] );
+
+				if ( is_wp_error( $response ) ) {
+					wc_get_logger()->add( 'wlmi', 'Failed to download batch error file for batch_id ' . $batch_id . ': ' . $response->get_error_message() );
+					continue;
+				}
+
+				$file_content = wp_remote_retrieve_body( $response );
+				$response_code = wp_remote_retrieve_response_code( $response );
+
+				if ( $response_code !== 200 || empty( $file_content ) ) {
+					wc_get_logger()->add( 'wlmi', 'Failed to download batch error file for batch_id ' . $batch_id . ': HTTP ' . $response_code );
+					continue;
+				}
+
+				// Save the file
+				$file_path = $batch_log_dir . $batch_id . '-response.tar.gz';
+				$saved = file_put_contents( $file_path, $file_content );
+
+				if ( $saved === false ) {
+					wc_get_logger()->add( 'wlmi', 'Failed to save batch error file for batch_id ' . $batch_id . ' to ' . $file_path );
+				} else {
+					wc_get_logger()->add( 'wlmi', 'Downloaded batch error file for batch_id ' . $batch_id . ' (' . $errored_operations . ' errors) to ' . $file_path );
+				}
+			}
+		}
+
+		if ( ! $has_errors ) {
+			wc_get_logger()->add( 'wlmi', 'No errors found in migration batches for list_id ' . $list_id );
 		}
 	}
 }

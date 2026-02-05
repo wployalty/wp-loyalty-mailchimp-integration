@@ -108,6 +108,32 @@ class Mailchimp {
 	}
 
 	/**
+	 * Check batch status.
+	 *
+	 * @param array $settings
+	 * @param string $batch_id
+	 *
+	 * @return object|null
+	 */
+	public static function getBatchStatus( array $settings, string $batch_id ) {
+		if ( empty( $batch_id ) ) {
+			return null;
+		}
+
+		$mailchimp = self::getClientFromSettings( $settings );
+		if ( empty( $mailchimp ) ) {
+			return null;
+		}
+
+		try {
+			return $mailchimp->batches->status( $batch_id );
+		} catch ( \Exception $e ) {
+			wc_get_logger()->add( 'wlmi', 'Mailchimp batch status check failed for batch_id ' . $batch_id . ': ' . $e->getMessage() );
+			return null;
+		}
+	}
+
+	/**
 	 * Ensure required merge fields exist for list.
 	 *
 	 * @param string $list_id
@@ -190,6 +216,62 @@ class Mailchimp {
 
 			return true;
 		} catch ( \Exception $e ) {
+			$log_message = 'Mailchimp member added failed: ' . $e->getMessage();
+			if ( method_exists( $e, 'getResponse' ) && $e->getResponse() !== null ) {
+				$body = $e->getResponse()->getBody();
+				if ( $body !== null && method_exists( $body, 'getContents' ) ) {
+					$full_body = $body->getContents();
+					if ( $full_body !== '' ) {
+						$log_message .= ' Full response: ' . $full_body;
+					}
+				}
+			}
+			wc_get_logger()->add( 'wlmi', $log_message );
+			return false;
+		}
+	}
+
+	/**
+	 * Delete a list member by email.
+	 *
+	 * @param string $list_id Mailchimp list ID.
+	 * @param string $email   Member email address.
+	 *
+	 * @return bool True on success, false on failure or missing config.
+	 */
+	public static function deleteListMember( $list_id, $email ): bool {
+		$list_id = (string) $list_id;
+		$email   = sanitize_email( $email );
+		if ( empty( $list_id ) || empty( $email ) ) {
+			return false;
+		}
+
+		$mailchimp = self::getClientFromSettings( SettingsHelper::gets() );
+		if ( empty( $mailchimp ) ) {
+			return false;
+		}
+
+		try {
+			$subscriber_hash = md5( strtolower( trim( $email ) ) );
+			$mailchimp->lists->deleteListMember( $list_id, $subscriber_hash );
+			if ( function_exists( 'wc_get_logger' ) ) {
+				wc_get_logger()->add( 'wlmi', 'Mailchimp member deleted: ' . $email );
+			}
+			return true;
+		} catch ( \Exception $e ) {
+			$log_message = 'Mailchimp member delete failed: ' . $e->getMessage();
+			if ( method_exists( $e, 'getResponse' ) && $e->getResponse() !== null ) {
+				$body = $e->getResponse()->getBody();
+				if ( $body !== null && method_exists( $body, 'getContents' ) ) {
+					$full_body = $body->getContents();
+					if ( $full_body !== '' ) {
+						$log_message .= ' Full response: ' . $full_body;
+					}
+				}
+			}
+			if ( function_exists( 'wc_get_logger' ) ) {
+				wc_get_logger()->add( 'wlmi', $log_message );
+			}
 			return false;
 		}
 	}

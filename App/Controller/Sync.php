@@ -67,4 +67,32 @@ class Sync {
 
 		MailchimpHelper::upsertMember( $settings['list_id'], $user_email, $merge_fields );
 	}
+
+	/**
+	 * When a customer is deleted from WooCommerce Loyalty, remove them from the Mailchimp list.
+	 *
+	 * @param bool  $status    Result of the loyalty delete (true on success).
+	 * @param array $condition Condition used for delete, must include 'user_email'.
+	 *
+	 * @return bool The original $status (unchanged).
+	 */
+	public static function onDeleteCustomer( $status, $condition ) {
+		if ( ! $status || ! is_array( $condition ) || empty( $condition['user_email'] ) ) {
+			return $status;
+		}
+
+		$user_email = sanitize_email( $condition['user_email'] );
+		if ( empty( $user_email ) ) {
+			return $status;
+		}
+
+		$settings = SettingsHelper::gets();
+		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) || empty( $settings['list_id'] ) ) {
+			return $status;
+		}
+
+		MailchimpHelper::deleteListMember( $settings['list_id'], $user_email );
+
+		return $status;
+	}
 }
