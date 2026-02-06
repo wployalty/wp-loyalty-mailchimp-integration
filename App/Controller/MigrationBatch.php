@@ -10,30 +10,79 @@ defined( 'ABSPATH' ) || exit;
 
 class MigrationBatch {
 	/**
-	 * Schedule migration batches when migration choice is enabled.
+	 * Check if the first migration batch (start_id = 0) is still pending for a list.
 	 *
-	 * @param array $settings
+	 * @param string $list_id
+	 *
+	 * @return bool
+	 */
+	protected static function isFirstBatchPending( string $list_id ): bool {
+		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
+			return false;
+		}
+
+		$args  = [ [ 'start_id' => 0, 'list_id' => (string) $list_id ] ];
+		$group = 'wlmi_migration_queue';
+
+		return false !== as_next_scheduled_action( 'wlmi_process_mailchimp_migration_batch', $args, $group );
+	}
+
+	/**
+	 * Check if there are any pending migration batches for a given list.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return bool
+	 */
+	protected static function hasPendingMigrationBatches( string $list_id ): bool {
+		if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
+			return false;
+		}
+
+		$actions = as_get_scheduled_actions( [
+			'hook'     => 'wlmi_process_mailchimp_migration_batch',
+			'group'    => 'wlmi_migration_queue',
+			'status'   => 'pending',
+			'per_page' => 50,
+			'return'   => 'objects',
+		] );
+
+		if ( empty( $actions ) || ! is_array( $actions ) ) {
+			return false;
+		}
+
+		foreach ( $actions as $action ) {
+			if ( ! is_object( $action ) || ! method_exists( $action, 'get_args' ) ) {
+				continue;
+			}
+			$args = $action->get_args();
+			if ( empty( $args ) || ! is_array( $args ) ) {
+				continue;
+			}
+
+			$job_data = isset( $args[0] ) && is_array( $args[0] ) ? $args[0] : [];
+			if ( isset( $job_data['list_id'] ) && (string) $job_data['list_id'] === (string) $list_id ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Core logic to schedule migration batches for a given list.
+	 *
+	 * @param string $list_id
+	 * @param array  $settings
 	 *
 	 * @return void
 	 */
-	public static function scheduleBatches( array $settings ) {
-		$migration_choice = isset( $settings['migration_choice'] ) ? (string) $settings['migration_choice'] : '';
-		if ( $migration_choice !== 'yes' ) {
-			return;
-		}
-		if ( empty( $settings['list_id'] ) ) {
+	protected static function scheduleBatchesForList( string $list_id, array $settings ): void {
+		if ( empty( $list_id ) ) {
 			return;
 		}
 		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
 			wc_get_logger()->add( 'wlmi', 'Action Scheduler not available for migration scheduling.' );
-			return;
-		}
-
-		$list_id = (string) $settings['list_id'];
-		$group   = 'wlmi_migration_queue';
-		$args    = [ [ 'start_id' => 0, 'list_id' => $list_id ] ];
-
-		if ( false !== as_next_scheduled_action( 'wlmi_process_mailchimp_migration_batch', $args, $group ) ) {
 			return;
 		}
 
@@ -47,6 +96,7 @@ class MigrationBatch {
 		$batch_size  = 1000;
 		$batch_index = 0;
 		$last_id     = 0;
+		$group       = 'wlmi_migration_queue';
 
 		while ( true ) {
 			$where_parts = [ $wpdb->prepare( 'id > %d', $last_id ) ];
@@ -68,7 +118,7 @@ class MigrationBatch {
 				break;
 			}
 
-			$time    = time() + ( $batch_index * 120 );
+			$time     = time() + ( $batch_index * 120 );
 			$job_args = [ [ 'start_id' => $last_id, 'list_id' => $list_id ] ];
 			if ( false === as_next_scheduled_action( 'wlmi_process_mailchimp_migration_batch', $job_args, $group ) ) {
 				as_schedule_single_action( $time, 'wlmi_process_mailchimp_migration_batch', $job_args, $group );
@@ -85,13 +135,69 @@ class MigrationBatch {
 
 		// Schedule error check job after all batches are scheduled (6 hours after last batch)
 		if ( $batch_index > 0 ) {
-			$error_check_time = time() + ( $batch_index * 120 ) + ( 6 * HOUR_IN_SECONDS );
-			$error_check_args = [ [ 'list_id' => $list_id ] ];
+			$error_check_time  = time() + ( $batch_index * 120 ) + ( 6 * HOUR_IN_SECONDS );
+			$error_check_args  = [ [ 'list_id' => $list_id ] ];
 			$error_check_group = 'wlmi_migration_error_check';
 			if ( false === as_next_scheduled_action( 'wlmi_check_migration_errors', $error_check_args, $error_check_group ) ) {
 				as_schedule_single_action( $error_check_time, 'wlmi_check_migration_errors', $error_check_args, $error_check_group );
 			}
 		}
+	}
+
+	/**
+	 * Schedule migration batches when migration choice is enabled.
+	 *
+	 * @param array $settings
+	 *
+	 * @return void
+	 */
+	public static function scheduleBatches( array $settings ) {
+		$migration_choice = isset( $settings['migration_choice'] ) ? (string) $settings['migration_choice'] : '';
+		if ( $migration_choice !== 'yes' ) {
+			return;
+		}
+		if ( empty( $settings['list_id'] ) ) {
+			return;
+		}
+		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
+			wc_get_logger()->add( 'wlmi', 'Action Scheduler not available for migration scheduling.' );
+			return;
+		}
+
+		$list_id = (string) $settings['list_id'];
+		if ( self::isFirstBatchPending( $list_id ) ) {
+			// Migration already scheduled and will handle all users.
+			return;
+		}
+
+		self::scheduleBatchesForList( $list_id, $settings );
+	}
+
+	/**
+	 * Handle loyalty import completion.
+	 *
+	 * @return void
+	 */
+	public static function onImportCompleted(): void {
+		$settings = SettingsHelper::gets();
+		$list_id  = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
+		if ( empty( $list_id ) ) {
+			return;
+		}
+
+		// If the first batch is pending, migration hasn't started yet and will handle all users.
+		if ( self::isFirstBatchPending( $list_id ) ) {
+			return;
+		}
+
+		// If there are any other pending batches, wait for migration to complete and then sync.
+		if ( self::hasPendingMigrationBatches( $list_id ) ) {
+			update_option( 'wlmi_sync_after_migration_' . $list_id, 1 );
+			return;
+		}
+
+		// No migration batches pending for this list: run a full sync now.
+		self::scheduleBatchesForList( $list_id, $settings );
 	}
 
 	/**
@@ -186,18 +292,23 @@ class MigrationBatch {
 			return;
 		}
 
-		// Store batch ID in transient (expires in 30 minutes) and option (for error tracking)
+		// Store batch ID in option for error tracking
 		if ( isset( $response->id ) ) {
-			$batch_id = (string) $response->id;
-			$transient_key = 'wlmi_batch_' . $batch_id;
-			set_transient( $transient_key, $response, 30 * MINUTE_IN_SECONDS );
-			
-			// Store batch ID in option for error tracking
+			$batch_id   = (string) $response->id;
 			$option_key = 'wlmi_migration_batches_' . $list_id;
-			$batch_ids = get_option( $option_key, [] );
+			$batch_ids  = get_option( $option_key, [] );
 			if ( ! in_array( $batch_id, $batch_ids, true ) ) {
 				$batch_ids[] = $batch_id;
 				update_option( $option_key, $batch_ids );
+			}
+		}
+
+		// If migration has finished for this list and a post-migration sync was requested, schedule it now.
+		if ( ! self::hasPendingMigrationBatches( $list_id ) ) {
+			$flag_key = 'wlmi_sync_after_migration_' . $list_id;
+			if ( get_option( $flag_key ) ) {
+				delete_option( $flag_key );
+				self::scheduleBatchesForList( $list_id, $settings );
 			}
 		}
 	}
