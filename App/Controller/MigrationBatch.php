@@ -111,6 +111,8 @@ class MigrationBatch {
 			return;
 		}
 
+		update_option( 'wlmi_migration_batches_' . $list_id, [] );
+
 		global $wpdb;
 		$user_model = new Users();
 		$table      = $user_model->getTableName();
