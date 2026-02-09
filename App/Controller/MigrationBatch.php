@@ -2,7 +2,7 @@
 
 namespace WLMI\App\Controller;
 
-use lWLMI\App\Helper\Mailchimp as MailchimpHelper;
+use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Settings as SettingsHelper;
 use Wlr\App\Models\Users;
 
@@ -345,7 +345,7 @@ class MigrationBatch {
 	 *
 	 * @return void
 	 */
-	public static function checkMigrationErrors( $job_data ) {
+	public static function  checkMigrationErrors( $job_data ) {
 		if ( empty( $job_data ) || ! is_array( $job_data ) ) {
 			return;
 		}
