@@ -2,7 +2,7 @@
 
 namespace WLMI\App\Controller;
 
-use WLMI\App\Helper\Mailchimp as MailchimpHelper;
+use lWLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Settings as SettingsHelper;
 use Wlr\App\Models\Users;
 
@@ -10,21 +10,77 @@ defined( 'ABSPATH' ) || exit;
 
 class MigrationBatch {
 	/**
-	 * Check if the first migration batch (start_id = 0) is still pending for a list.
+	 * Get pending migration state for a list in a single paginated scan.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return array{has_first_batch_pending: bool, has_any_batch_pending: bool}
+	 */
+	private static function getPendingMigrationState( string $list_id ): array {
+		$state = [
+			'has_first_batch_pending' => false,
+			'has_any_batch_pending'   => false,
+		];
+		if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
+			return $state;
+		}
+
+		$per_page    = 50;
+		$offset      = 0;
+		$statuses    = class_exists( 'ActionScheduler_Store' ) ? [ \ActionScheduler_Store::STATUS_PENDING, \ActionScheduler_Store::STATUS_RUNNING ] : [ 'pending', 'running' ];
+
+		do {
+			$actions = as_get_scheduled_actions( [
+				'hook'     => 'wlmi_process_mailchimp_migration_batch',
+				'group'    => 'wlmi_migration_queue',
+				'status'   => $statuses,
+				'per_page' => $per_page,
+				'offset'   => $offset,
+			], OBJECT );
+
+			if ( empty( $actions ) || ! is_array( $actions ) ) {
+				break;
+			}
+
+			foreach ( $actions as $action ) {
+				if ( ! is_object( $action ) || ! method_exists( $action, 'get_args' ) ) {
+					continue;
+				}
+				$args = $action->get_args();
+				if ( empty( $args ) || ! is_array( $args ) ) {
+					continue;
+				}
+				$job_data   = isset( $args[0] ) && is_array( $args[0] ) ? $args[0] : [];
+				$job_list   = (string) ( $job_data['list_id'] ?? '' );
+				$job_start  = (int) ( $job_data['start_id'] ?? -1 );
+				$list_match  = $job_list === $list_id;
+				if ( $list_match ) {
+					$state['has_any_batch_pending'] = true;
+					if ( $job_start === 0 ) {
+						$state['has_first_batch_pending'] = true;
+					}
+				}
+				if ( $state['has_first_batch_pending'] && $state['has_any_batch_pending'] ) {
+					return $state;
+				}
+			}
+
+			$count  = count( $actions );
+			$offset += $per_page;
+		} while ( $count >= $per_page );
+
+		return $state;
+	}
+
+	/**
+	 * Check if the first migration batch (start_id = 0) is still pending or running for a list.
 	 *
 	 * @param string $list_id
 	 *
 	 * @return bool
 	 */
 	protected static function isFirstBatchPending( string $list_id ): bool {
-		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
-			return false;
-		}
-
-		$args  = [ [ 'start_id' => 0, 'list_id' => (string) $list_id ] ];
-		$group = 'wlmi_migration_queue';
-
-		return false !== as_next_scheduled_action( 'wlmi_process_mailchimp_migration_batch', $args, $group );
+		return self::getPendingMigrationState( $list_id )['has_first_batch_pending'];
 	}
 
 	/**
@@ -35,38 +91,7 @@ class MigrationBatch {
 	 * @return bool
 	 */
 	protected static function hasPendingMigrationBatches( string $list_id ): bool {
-		if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
-			return false;
-		}
-
-		$actions = as_get_scheduled_actions( [
-			'hook'     => 'wlmi_process_mailchimp_migration_batch',
-			'group'    => 'wlmi_migration_queue',
-			'status'   => 'pending',
-			'per_page' => 50,
-			'return'   => 'objects',
-		] );
-
-		if ( empty( $actions ) || ! is_array( $actions ) ) {
-			return false;
-		}
-
-		foreach ( $actions as $action ) {
-			if ( ! is_object( $action ) || ! method_exists( $action, 'get_args' ) ) {
-				continue;
-			}
-			$args = $action->get_args();
-			if ( empty( $args ) || ! is_array( $args ) ) {
-				continue;
-			}
-
-			$job_data = isset( $args[0] ) && is_array( $args[0] ) ? $args[0] : [];
-			if ( isset( $job_data['list_id'] ) && (string) $job_data['list_id'] === (string) $list_id ) {
-				return true;
-			}
-		}
-
-		return false;
+		return self::getPendingMigrationState( $list_id )['has_any_batch_pending'];
 	}
 
 	/**
@@ -185,18 +210,17 @@ class MigrationBatch {
 			return;
 		}
 
-		// If the first batch is pending, migration hasn't started yet and will handle all users.
-		if ( self::isFirstBatchPending( $list_id ) ) {
+		$state = self::getPendingMigrationState( $list_id );
+
+		if ( $state['has_first_batch_pending'] ) {
 			return;
 		}
 
-		// If there are any other pending batches, wait for migration to complete and then sync.
-		if ( self::hasPendingMigrationBatches( $list_id ) ) {
+		if ( $state['has_any_batch_pending'] ) {
 			update_option( 'wlmi_sync_after_migration_' . $list_id, 1 );
 			return;
 		}
 
-		// No migration batches pending for this list: run a full sync now.
 		self::scheduleBatchesForList( $list_id, $settings );
 	}
 
@@ -264,10 +288,11 @@ class MigrationBatch {
 			}
 
 			$points = isset( $user->points ) ? (int) $user->points : 0;
+			$subscriber_hash = md5( strtolower( trim( $user_email ) ) );
 
 			$operations[] = [
-				'method'       => 'POST',
-				'path'         => "/lists/{$list_id}/members",
+				'method'       => 'PUT',
+				'path'         => "/lists/{$list_id}/members/{$subscriber_hash}",
 				'operation_id' => $user_email,
 				'body'         => wp_json_encode( [
 					'email_address' => $user_email,
