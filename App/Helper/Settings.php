@@ -12,7 +12,19 @@ class Settings {
 	}
 
 	public static function gets() {
-		return get_option( 'wlmi_settings', self::getDefaultSettings() );
+		$settings = get_option( 'wlmi_settings', self::getDefaultSettings() );
+
+		/**
+		 * Filter Mailchimp add-on settings before they are returned.
+		 *
+		 * This allows helpers (like License) to append additional data such as
+		 * license_status and license_key which are needed on the React side.
+		 *
+		 * @param array $settings Settings data.
+		 *
+		 * @return array
+		 */
+		return apply_filters( 'wlmi_get_settings_data', $settings );
 	}
 
 	public static function getDefaultSettings(): array {

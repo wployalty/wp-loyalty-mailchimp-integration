@@ -4,10 +4,12 @@ namespace WLMI\App;
 
 use WLMI\App\Controller\Admin\Labels;
 use WLMI\App\Controller\Admin\Settings;
+use WLMI\App\Controller\Admin\License;
 use WLMI\App\Controller\Admin\Api;
 use WLMI\App\Controller\Common;
 use WLMI\App\Controller\MigrationBatch;
 use WLMI\App\Controller\Sync;
+use WLMI\App\Helper\License as LicenseHelper;
 
 defined( 'ABSPATH' ) or die;
 
@@ -32,6 +34,14 @@ class Router {
 			add_action( 'wp_ajax_wlmi_launcher_save_settings', [ Settings::class, 'saveSettings' ] );
 			add_action( 'wp_ajax_wlmi_test_connection', [ Api::class, 'testConnection' ] );
 			add_action( 'wp_ajax_wlmi_get_lists', [ Api::class, 'getLists' ] );
+
+			// license
+			LicenseHelper::init();
+			add_action( 'wp_ajax_wlmi_activate_license', [ License::class, 'activate' ] );
+			add_action( 'wp_ajax_wlmi_deactivate_license', [ License::class, 'deActivate' ] );
+			add_action( 'wp_ajax_wlmi_check_license_status', [ License::class, 'checkStatus' ] );
+			add_filter( 'wlmi_get_settings_data', [ LicenseHelper::class, 'appendLicenseToSettings' ] );
+			add_action( 'in_admin_header', [ LicenseHelper::class, 'showHeaderNotice' ] );
 		}
 		add_filter( 'wlr_internal_addons_list', [ Common::class, 'addInternalAddons' ] );
 		add_action( 'wlr_customer_points_balance_changed', [ Sync::class, 'syncMember' ], 10, 6 );

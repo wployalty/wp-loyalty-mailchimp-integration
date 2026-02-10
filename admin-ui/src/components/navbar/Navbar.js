@@ -10,6 +10,11 @@ const Navbar = () => {
             path: "/settings",
             check: ["settings"],
         },
+        {
+            label: "License",
+            path: "/license",
+            check: ["license"],
+        },
     ]
 
     return <div className={`flex h-13 w-24 gap-1`}>

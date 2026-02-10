@@ -67,6 +67,8 @@ class Labels {
 			'version'                      => 'v' . WLMI_PLUGIN_VERSION,
 			'save'                         => __( 'Save Changes', 'wp-loyalty-mailchimp-integration' ),
 			'upgrade_text'                 => __( 'Upgrade to Pro', 'wp-loyalty-mailchimp-integration' ),
+			'buy_pro_button_text'          => __( 'Buy Pro', 'wp-loyalty-mailchimp-integration' ),
+			'license_required_description' => __('Activate your license to configure the Mailchimp integration settings.','wp-loyalty-mailchimp-integration'),
 			'buy_pro_url'                  => 'https://wployalty.net/pricing/?utm_campaign=wployalty-link&utm_medium=pro_url&utm_source=pricing',
 
 			'back'                         => __( 'Back', 'wp-loyalty-mailchimp-integration' ),
