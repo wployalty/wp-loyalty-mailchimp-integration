@@ -125,8 +125,8 @@ class Common {
 		}
 		update_option( 'wlmi_is_launcher_plugin_activated', true );
 		$add_ons['wp-loyalty-mailchimp-integration'] = [
-			'name'         => esc_html__( 'WPLoyalty - Launcher', 'wp-loyalty-mailchimp-integration' ),
-			'description'  => __( 'Launcher widget for WPLoyalty. Let your customers easily discover your loyalty rewards.', 'wp-loyalty-mailchimp-integration' ),
+			'name'         => esc_html__( 'WPLoyalty - Mailchimp Integration', 'wp-loyalty-mailchimp-integration' ),
+			'description'  => __( 'The add-on integrates WPLoyalty with your Mailchimp.', 'wp-loyalty-mailchimp-integration' ),
 			'icon_url'     => \Wlr\App\Helpers\Util::getImageUrl( 'wp-loyalty-mailchimp-integration' ),
 			'page_url'     => '{addon_page}',
 			'document_url' => '',

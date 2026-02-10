@@ -20,6 +20,7 @@ const Settings = () => {
     });
     const [loading, setLoading] = React.useState(true);
     const [testLoading, setTestLoading] = React.useState(false);
+    const [disableSave, setDisableSave] = React.useState(false);
     const [errorList, setErrorList] = React.useState([]);
     const [errors, setErrors] = React.useState({});
     const [isConnected, setIsConnected] = React.useState(false);
@@ -194,28 +195,31 @@ const Settings = () => {
         }
     };
 
-    const saveSettings = async (wlmi_nonce = appState.settings_nonce) => {
+    const saveSettings = (wlmi_nonce = appState.settings_nonce) => {
+        setDisableSave(true);
         let params = {
             wlmi_nonce,
-            action: "wlmi_launcher_save_settings", 
+            action: "wlmi_launcher_save_settings",
         };
         params.settings = btoa(unescape(encodeURIComponent(JSON.stringify(settings))));
-        
-        let json = await postRequest(params);
-        let resJSON = getJSONData(json.data);
-        if (resJSON.success === true) {
-            alertifyToast(resJSON.data.message);
-            setErrorList([]);
-            setErrors({});
-            // Only mark as saved if API key exists in the settings being saved
-            const hasApiKey = settings.api_key && settings.api_key.trim() !== "";
-            setSettingsSaved(hasApiKey);
-            // Reload settings to get the connected status and fetch lists if connected
-            getSettings();
-        } else {
-            setErrors(resJSON.data);
-            errorDisplayer(resJSON.data, {setErrorList});
-        }
+
+        postRequest(params).then((json) => {
+            let resJSON = getJSONData(json.data);
+            if (resJSON.success === true) {
+                alertifyToast(resJSON.data.message);
+                setErrorList([]);
+                setErrors({});
+                const hasApiKey = settings.api_key && settings.api_key.trim() !== "";
+                setSettingsSaved(hasApiKey);
+                getSettings();
+            } else {
+                setErrors(resJSON.data);
+                errorDisplayer(resJSON.data, {setErrorList});
+            }
+            setDisableSave(false);
+        }).catch(() => {
+            setDisableSave(false);
+        });
     }
 
     const handleTestConnection = async () => {
@@ -249,6 +253,7 @@ const Settings = () => {
             <TitleActionContainer 
                 title={labels.settings?.title || "Mailchimp Settings"} 
                 saveAction={() => saveSettings()}
+                saveDisabled={disableSave}
             />
 
             <div className="flex gap-x-6 items-start w-full h-[590px]">

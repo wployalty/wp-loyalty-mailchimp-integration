@@ -2,7 +2,7 @@ import React from 'react';
 import Button from "./Button";
 import {CommonContext, UiLabelContext} from "../../Context";
 
-const TitleActionContainer = ({ title, saveAction }) => {
+const TitleActionContainer = ({ title, saveAction, saveDisabled = false }) => {
     const labels = React.useContext(UiLabelContext);
     const {appState} = React.useContext(CommonContext);
 
@@ -25,6 +25,7 @@ const TitleActionContainer = ({ title, saveAction }) => {
             <Button
                 icon={<i className={`wlr wlrf-save text-md font-medium color-important `}/>}
                 click={saveAction}
+                disabled={saveDisabled}
             >
                 {labels.common.save}
             </Button>
