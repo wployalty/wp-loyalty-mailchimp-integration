@@ -216,6 +216,10 @@ const License = () => {
                                                 currentLabels.license_key_placeholder ||
                                                 "Enter your license key"
                                             }
+                                            border={`border-2 border-opacity-100 ${
+                                                statusIsActive ? "border-green-500" : "border-red-600"
+                                            }`}
+                                            textColor={statusIsActive ? "text-green-600" : "text-red-600"}
                                             height="h-12"
                                             onChange={(e) => setLicenseKey(e.target.value)}
                                         />

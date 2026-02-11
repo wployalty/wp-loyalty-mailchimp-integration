@@ -5,6 +5,22 @@ defined( 'ABSPATH' ) || exit;
 
 class Util {
 	/**
+	 * Get the admin settings page URL for this plugin.
+	 * The page/tab to load is determined by the optional param (hash route).
+	 *
+	 * @param string $page Optional. Hash route segment to open (e.g. 'license', 'settings'). Results in #/license, #/settings.
+	 * @return string Full URL to the plugin admin page, with optional hash.
+	 */
+	public static function getSettingsPageUrl( string $page = '' ): string {
+		$url = admin_url( 'admin.php?' . http_build_query( [ 'page' => WLMI_PLUGIN_SLUG ] ) );
+		if ( $page !== '' ) {
+			$url .= '#/' . ltrim( $page, '/' );
+		}
+
+		return $url;
+	}
+
+	/**
 	 * Check if the request is coming from the admin side.
 	 *
 	 * @return bool Returns true if the request is from the admin side, false otherwise.

@@ -12,7 +12,7 @@ const EmptyPage = ({ title, description, buttonText }) => {
     const handleClick = (e) => {
         e.preventDefault();
         if (buyProUrl) {
-            window.open(buyProUrl, "_blank", "noopener,noreferrer");
+            window.location.href = buyProUrl;
         }
     };
 

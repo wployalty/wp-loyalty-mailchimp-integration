@@ -16,7 +16,9 @@ const SidebarTabContainer = ({label, tabIcon, click, isPro = true,}) => {
             <span className="bg-blue_primary text-white font-medium rounded text-xs px-1.5 py-1"
                   onClick={(e) => {
                       e.preventDefault();
-                      window.open(labels.common.buy_pro_url);
+                      if (labels.common.buy_pro_url) {
+                          window.location.href = labels.common.buy_pro_url;
+                      }
                   }}
             >
                 {labels.common.upgrade_text}</span>

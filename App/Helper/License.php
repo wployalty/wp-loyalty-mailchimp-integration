@@ -357,14 +357,7 @@ class License {
 			return;
 		}
 
-		$settings_url = admin_url(
-			'admin.php?' . http_build_query(
-				[
-					'page' => WLMI_PLUGIN_SLUG,
-				]
-			)
-		);
-		$settings_url .= '#/license';
+		$settings_url = Util::getSettingsPageUrl( 'license' );
 
 		$html  = '<div id="wlmi-admin-notice" class="wlmi-admin-notice-top-of-page wlmi-pro-inactive">';
 		$html .= esc_html__(
