@@ -63,7 +63,7 @@ class License {
 	 */
 	protected static function getData( string $key = '', $default = false ) {
 		if ( is_null( self::$data ) ) {
-			$data = get_option( self::$option_key, [] );
+			$data = get_option( self::$option_key, Settings::getOptionDefault( 'wlmi_license', [] ) );
 			if ( ! is_array( $data ) ) {
 				$data = [];
 			}

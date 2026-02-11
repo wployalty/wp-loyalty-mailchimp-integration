@@ -21,39 +21,6 @@ class Util {
 	}
 
 	/**
-	 * Check if the request is coming from the admin side.
-	 *
-	 * @return bool Returns true if the request is from the admin side, false otherwise.
-	 */
-	public static function isAdminSide() {
-		return Input::get( 'is_admin_side' ) === 'true';
-	}
-
-	/**
-	 * Render a template file with the provided data.
-	 *
-	 * @param string $file The path to the template file to render.
-	 * @param array $data An associative array containing data to be used in the template.
-	 * @param bool $display Whether to display the rendered content immediately or return it.
-	 *
-	 * @return string|void The rendered content of the template file if $display is false, void otherwise.
-	 */
-	public static function renderTemplate( string $file, array $data = [], bool $display = true ) {
-		$content = '';
-		if ( file_exists( $file ) ) {
-			ob_start();
-			extract( $data );
-			include $file;
-			$content = ob_get_clean();
-		}
-		if ( ! $display ) {
-			return $content;
-		}
-		//phpcs:ignore
-		echo $content;
-	}
-
-	/**
 	 * Check if a given string is a valid JSON format.
 	 *
 	 * @param string $string The string to check for JSON format.
@@ -95,6 +62,34 @@ class Util {
 	}
 
 	/**
+	 * Convert WordPress timezone to UTC.
+	 *
+	 * @param string $datetime The WordPress timezone date/time string to convert.
+	 * @param string $format The format to return the date/time in. Default is 'Y-m-d H:i:s'.
+	 * @param string $modify Optional. A date interval specification to modify the date/time. Default is ''.
+	 *
+	 * @return string|null The converted date/time string in UTC or null if input is empty.
+	 */
+	public static function convertWPtoUTC( $datetime, $format = 'Y-m-d H:i:s', $modify = '' ) {
+		if ( empty( $datetime ) ) {
+			return null;
+		}
+		try {
+			$wp_time_zone = new \DateTimeZone( WC::getWPZone() );
+			$current_time = new \DateTime( $datetime, $wp_time_zone );
+			if ( ! empty( $modify ) ) {
+				$current_time->modify( $modify );
+			}
+			$timezone = new \DateTimeZone( 'UTC' );
+			$current_time->setTimezone( $timezone );
+
+			return $current_time->format( $format );
+		} catch ( \Exception $e ) {
+			return $datetime;
+		}
+	}
+
+	/**
 	 * Convert UTC timestamp to WordPress timezone.
 	 *
 	 * @param string $datetime The UTC date/time string to convert.
@@ -118,6 +113,55 @@ class Util {
 		}
 
 		return $converted_time;
+	}
+
+	/**
+	 * Format UTC datetime string using WordPress date and time format settings.
+	 *
+	 * @param string $datetime_utc The UTC date/time string to format.
+	 *
+	 * @return string Formatted date/time string using WordPress date_format and time_format, or original string if conversion fails.
+	 */
+	public static function formatDateTimeWP( $datetime_utc ) {
+		if ( empty( $datetime_utc ) ) {
+			return '';
+		}
+
+		try {
+			// Convert UTC to WP timezone first
+			$wp_datetime = self::convertUTCtoWP( $datetime_utc, 'Y-m-d H:i:s' );
+			
+			// Get WordPress date and time format
+			$date_format = get_option( 'date_format', 'Y-m-d' );
+			$time_format = get_option( 'time_format', 'H:i:s' );
+			$wp_format   = $date_format . ' ' . $time_format;
+			
+			// Convert to timestamp for date_i18n
+			$timestamp = strtotime( $wp_datetime );
+			if ( $timestamp === false ) {
+				return $datetime_utc;
+			}
+			
+			// Format using WordPress date/time format with i18n support
+			return date_i18n( $wp_format, $timestamp );
+		} catch ( \Exception $e ) {
+			return $datetime_utc;
+		}
+	}
+
+	/**
+	 * Get current time formatted for display using WordPress date and time format settings.
+	 *
+	 * Gets the current time in UTC, formats it using WordPress date/time format,
+	 * or falls back to current WordPress time if UTC is unavailable.
+	 *
+	 * @return string Formatted current time using WordPress date_format and time_format.
+	 */
+	public static function getCurrentTimeFormatted() {
+		$current_time_utc = current_time( 'mysql', true );
+		return ! empty( $current_time_utc ) 
+			? self::formatDateTimeWP( $current_time_utc )
+			: current_time( 'mysql' );
 	}
 
 	/**

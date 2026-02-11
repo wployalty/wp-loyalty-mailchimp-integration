@@ -4,6 +4,7 @@ namespace WLMI\App\Controller\Admin;
 
 use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Input;
+use WLMI\App\Helper\Util;
 use WLMI\App\Helper\WC;
 use WLMI\App\Helper\Settings as SettingsHelper;
 use WLMI\App\Controller\MigrationBatch;
@@ -142,6 +143,8 @@ class Api {
 		$list_id  = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
 
 		if ( empty( $list_id ) ) {
+			$last_checked_at = Util::getCurrentTimeFormatted();
+
 			wp_send_json_success( [
 				'state'                 => 'no_list',
 				'total_operations'      => 0,
@@ -154,7 +157,7 @@ class Api {
 				'first_error_file_url'  => null,
 				'failed_users_csv_path' => null,
 				'csv_processing_status' => 'not_started',
-				'last_checked_at'       => current_time( 'mysql' ),
+				'last_checked_at'       => $last_checked_at,
 			] );
 
 			return;

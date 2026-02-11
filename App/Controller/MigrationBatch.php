@@ -4,6 +4,7 @@ namespace WLMI\App\Controller;
 
 use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Settings as SettingsHelper;
+use WLMI\App\Helper\Util;
 use Wlr\App\Models\Users;
 
 defined( 'ABSPATH' ) || exit;
@@ -354,6 +355,8 @@ class MigrationBatch {
 	 * @return array Consolidated status data.
 	 */
 	public static function getConsolidatedStatus( string $list_id, array $settings ): array {
+		$default_last_checked_at = Util::getCurrentTimeFormatted();
+
 		$default = [
 			'state'                 => 'no_runs',
 			'total_operations'      => 0,
@@ -366,7 +369,7 @@ class MigrationBatch {
 			'first_error_file_url'  => null,
 			'failed_users_csv_path' => null,
 			'csv_processing_status' => 'not_started',
-			'last_checked_at'       => current_time( 'mysql' ),
+			'last_checked_at'       => $default_last_checked_at,
 		];
 
 		if ( empty( $list_id ) ) {
@@ -521,6 +524,8 @@ class MigrationBatch {
 			$error_file_url = $first_error_url;
 		}
 
+		$last_checked_at = Util::getCurrentTimeFormatted();
+
 		return [
 			'state'                 => $state,
 			'total_operations'      => $total_operations,
@@ -533,7 +538,7 @@ class MigrationBatch {
 			'first_error_file_url'  => $first_error_url,
 			'failed_users_csv_path' => $csv_path,
 			'csv_processing_status' => $csv_status,
-			'last_checked_at'       => current_time( 'mysql' ),
+			'last_checked_at'       => $last_checked_at,
 		];
 	}
 
