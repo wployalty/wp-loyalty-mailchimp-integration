@@ -7,7 +7,6 @@ use WLMI\App\Helper\Input;
 use WLMI\App\Helper\Validation;
 use WLMI\App\Helper\WC;
 use WLMI\App\Helper\Settings as SettingsHelper;
-use WLMI\App\Helper\License as LicenseHelper;
 use WLMI\App\Controller\MigrationBatch;
 
 defined( 'ABSPATH' ) or die;
@@ -95,20 +94,11 @@ class Settings {
 
 		update_option( 'wlmi_settings', $settings );
 
-		// Handle license key changes similar to WPLoyalty's before_save_settings filter.
-		$new_license_key = isset( $settings['license_key'] ) ? (string) $settings['license_key'] : '';
-		$old_license_key = isset( $existing_settings['license_key'] ) ? (string) $existing_settings['license_key'] : '';
-		if ( $new_license_key !== '' && $new_license_key !== $old_license_key ) {
-			LicenseHelper::activate( $new_license_key );
-		}
-
 		// Schedule migration batches only when Mailchimp list related settings are saved.
 		MigrationBatch::scheduleBatches( $settings );
 
 		wp_send_json_success( [
-			'message'        => __( 'Settings saved!', 'wp-loyalty-mailchimp-integration' ),
-			'license_status' => LicenseHelper::getLicenseStatus(),
-			'license_key'    => LicenseHelper::getLicenseKey(),
+			'message' => __( 'Settings saved!', 'wp-loyalty-mailchimp-integration' ),
 		] );
 	}
 }

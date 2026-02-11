@@ -2,7 +2,7 @@ import React from 'react';
 import Button from "./Button";
 import {CommonContext, UiLabelContext} from "../../Context";
 
-const TitleActionContainer = ({ title, saveAction, saveDisabled = false }) => {
+const TitleActionContainer = ({ title, saveAction, saveDisabled = false, showSave = true }) => {
     const labels = React.useContext(UiLabelContext);
     const {appState} = React.useContext(CommonContext);
 
@@ -22,13 +22,15 @@ const TitleActionContainer = ({ title, saveAction, saveDisabled = false }) => {
                 {labels.common.back_to_loyalty}
             </Button>
 
-            <Button
-                icon={<i className={`wlr wlrf-save text-md font-medium color-important `}/>}
-                click={saveAction}
-                disabled={saveDisabled}
-            >
-                {labels.common.save}
-            </Button>
+            {showSave && (
+                <Button
+                    icon={<i className={`wlr wlrf-save text-md font-medium color-important `}/>}
+                    click={saveAction}
+                    disabled={saveDisabled}
+                >
+                    {labels.common.save}
+                </Button>
+            )}
         </div>
     </div>
 };

@@ -15,7 +15,6 @@ const License = () => {
     const [licenseStatus, setLicenseStatus] = React.useState("inactive");
     const [loading, setLoading] = React.useState(true);
     const [processing, setProcessing] = React.useState(false);
-    const [disableSave, setDisableSave] = React.useState(false);
 
     const statusIsActive = licenseStatus === "active";
 
@@ -138,48 +137,11 @@ const License = () => {
 
     const currentLabels = labels.settings || {};
 
-    const handleSaveLicense = async (wlmi_nonce = appState.settings_nonce) => {
-        setDisableSave(true);
-        const payload = {
-            license_key: licenseKey || "",
-        };
-        const params = {
-            action: "wlmi_launcher_save_settings",
-            wlmi_nonce,
-        };
-        params.settings = btoa(
-            unescape(encodeURIComponent(JSON.stringify(payload)))
-        );
-
-        try {
-            const json = await postRequest(params);
-            const resJSON = getJSONData(json.data);
-            if (resJSON.success === true) {
-                alertifyToast(resJSON.data?.message || "License saved.");
-                if (resJSON.data?.license_status) {
-                    setLicenseStatus(resJSON.data.license_status);
-                }
-                if (typeof resJSON.data?.license_key === "string") {
-                    setLicenseKey(resJSON.data.license_key);
-                }
-            } else {
-                alertifyToast(
-                    resJSON.data?.message || "License not saved!",
-                    false
-                );
-            }
-        } catch (e) {
-            alertifyToast("License not saved!", false);
-        }
-        setDisableSave(false);
-    };
-
     return (
         <div className="w-full flex flex-col gap-y-2 items-start h-full">
             <TitleActionContainer
                 title={currentLabels.license_title || "License"}
-                saveAction={() => handleSaveLicense()}
-                saveDisabled={disableSave}
+                showSave={false}
             />
 
             <div className="flex gap-x-6 items-start w-full h-[560px] mt-3">
