@@ -531,19 +531,68 @@ const Settings = () => {
 
                                                         {/* Error Info */}
                                                         {migrationStatus.errored_operations > 0 ? (
-                                                            <div className="flex items-center gap-2 text-sm">
-                                                                <span className="text-red-600">
-                                                                    {migrationStatus.errored_operations.toLocaleString()} {labels.settings?.migration_failed_ops || "failed operations detected."}
-                                                                </span>
-                                                                {migrationStatus.first_error_file_url && (
-                                                                    <a 
-                                                                        href={migrationStatus.first_error_file_url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="text-primary hover:underline"
-                                                                    >
-                                                                        {labels.settings?.migration_download_error_file || "Download error file"}
-                                                                    </a>
+                                                            <div className="flex flex-col gap-2">
+                                                                <div className="flex items-center gap-2 text-sm">
+                                                                    <span className="text-red-600">
+                                                                        {migrationStatus.errored_operations.toLocaleString()} {labels.settings?.migration_failed_ops || "failed operations detected."}
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* CSV Processing Status */}
+                                                                {migrationStatus.csv_processing_status === 'processing' && (
+                                                                    <div className="flex items-center gap-2 text-sm">
+                                                                        <div className="flex items-center gap-2 text-yellow-600">
+                                                                            <i className="wlr wlrf-refresh animate-spin text-sm" />
+                                                                            <span>{labels.settings?.csv_processing_message || "Processing failed users CSV..."}</span>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => fetchMigrationStatus()}
+                                                                            disabled={migrationStatusLoading}
+                                                                            className="px-3 py-1 text-xs bg-primary text-white rounded hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                                        >
+                                                                            {labels.settings?.check_csv_status || "Check Status"}
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* CSV Ready for Download */}
+                                                                {migrationStatus.csv_processing_status === 'completed' && migrationStatus.failed_users_csv_path && (
+                                                                    <div className="flex items-center gap-2 text-sm">
+                                                                        <span className="text-green-600">
+                                                                            {labels.settings?.csv_ready_message || "CSV file ready for download."}
+                                                                        </span>
+                                                                        <a 
+                                                                            href={`${typeof wlmi_settings_form !== 'undefined' ? wlmi_settings_form.ajax_url : appState.ajax_url || ''}?action=wlmi_download_failed_users_csv&wlmi_nonce=${appState.settings_nonce}`}
+                                                                            className="text-primary hover:underline"
+                                                                        >
+                                                                            {labels.settings?.migration_download_csv || "Download failed users CSV"}
+                                                                        </a>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* CSV Processing Failed */}
+                                                                {migrationStatus.csv_processing_status === 'failed' && (
+                                                                    <div className="flex items-center gap-2 text-sm text-red-600">
+                                                                        <span>{labels.settings?.csv_processing_failed || "CSV processing failed. Please try again."}</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Fallback to raw error file if CSV not processing/completed and no CSV path */}
+                                                                {migrationStatus.csv_processing_status !== 'processing' && 
+                                                                 migrationStatus.csv_processing_status !== 'completed' && 
+                                                                 !migrationStatus.failed_users_csv_path && 
+                                                                 migrationStatus.first_error_file_url && (
+                                                                    <div className="flex items-center gap-2 text-sm">
+                                                                        <a 
+                                                                            href={migrationStatus.first_error_file_url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-primary hover:underline"
+                                                                        >
+                                                                            {labels.settings?.migration_download_error_file || "Download error file"}
+                                                                        </a>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         ) : migrationStatus.state === 'completed' && (

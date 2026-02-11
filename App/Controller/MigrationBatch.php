@@ -163,18 +163,6 @@ class MigrationBatch {
 				break;
 			}
 		}
-
-		// Schedule error check job after all batches are scheduled (6 hours after last batch)
-		if ( $batch_index > 0 ) {
-			$error_check_time  = time() + ( $batch_index * 120 ) + ( 6 * HOUR_IN_SECONDS );
-			$error_check_args  = [ [ 'list_id' => $list_id ] ];
-			$error_check_group = 'wlmi_migration_error_check';
-			if ( false === as_next_scheduled_action( 'wlmi_check_migration_errors', $error_check_args,
-					$error_check_group ) ) {
-				as_schedule_single_action( $error_check_time, 'wlmi_check_migration_errors', $error_check_args,
-					$error_check_group );
-			}
-		}
 	}
 
 	/**
@@ -367,16 +355,18 @@ class MigrationBatch {
 	 */
 	public static function getConsolidatedStatus( string $list_id, array $settings ): array {
 		$default = [
-			'state'               => 'no_runs',
-			'total_operations'    => 0,
-			'finished_operations' => 0,
-			'success_operations'  => 0,
-			'errored_operations'  => 0,
-			'batch_count'         => 0,
-			'has_any_pending'     => false,
-			'has_first_pending'   => false,
-			'first_error_file_url'=> null,
-			'last_checked_at'     => current_time( 'mysql' ),
+			'state'                 => 'no_runs',
+			'total_operations'      => 0,
+			'finished_operations'  => 0,
+			'success_operations'   => 0,
+			'errored_operations'   => 0,
+			'batch_count'           => 0,
+			'has_any_pending'       => false,
+			'has_first_pending'     => false,
+			'first_error_file_url'  => null,
+			'failed_users_csv_path' => null,
+			'csv_processing_status' => 'not_started',
+			'last_checked_at'       => current_time( 'mysql' ),
 		];
 
 		if ( empty( $list_id ) ) {
@@ -454,18 +444,410 @@ class MigrationBatch {
 			}
 		}
 
+		// Check for CSV file and process if needed
+		$csv_path         = null;
+		$csv_status       = 'not_started';
+		$log_base_dir     = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		$expected_csv_path = $log_base_dir . $list_id . '/failed-users.csv';
+		$status_key       = 'wlmi_csv_processing_status_' . $list_id;
+
+		// If all batches completed and there are errors, check/process CSV
+		if ( $state === 'completed' && $errored_operations > 0 ) {
+			// Check if CSV already exists
+			if ( file_exists( $expected_csv_path ) && is_readable( $expected_csv_path ) ) {
+				$csv_path   = $expected_csv_path;
+				$csv_status = 'completed';
+				// Clear any processing status
+				delete_transient( $status_key );
+			} else {
+				// Check processing status
+				$processing_status = get_transient( $status_key );
+
+				if ( $processing_status === 'processing' ) {
+					// Check if Action Scheduler job is still pending/running
+					if ( function_exists( 'as_get_scheduled_actions' ) ) {
+						$csv_actions = as_get_scheduled_actions( [
+							'hook'   => 'wlmi_process_csv_errors',
+							'args'   => [ [ 'list_id' => $list_id ] ],
+							'status' => class_exists( 'ActionScheduler_Store' ) ? [
+								\ActionScheduler_Store::STATUS_PENDING,
+								\ActionScheduler_Store::STATUS_RUNNING,
+							] : [ 'pending', 'running' ],
+						] );
+
+						if ( empty( $csv_actions ) ) {
+							// Job completed but CSV missing - mark as failed
+							$csv_status = 'failed';
+							delete_transient( $status_key );
+						} else {
+							$csv_status = 'processing';
+						}
+					} else {
+						$csv_status = 'processing';
+					}
+				} elseif ( $processing_status === 'failed' ) {
+					$csv_status = 'failed';
+				} else {
+					// No processing started yet - trigger async processing
+					if ( function_exists( 'as_schedule_single_action' ) && function_exists( 'as_next_scheduled_action' ) ) {
+						$job_args = [ [ 'list_id' => $list_id ] ];
+						$group    = 'wlmi_csv_processing';
+
+						if ( false === as_next_scheduled_action( 'wlmi_process_csv_errors', $job_args, $group ) ) {
+							as_schedule_single_action( time(), 'wlmi_process_csv_errors', $job_args, $group );
+							set_transient( $status_key, 'processing', HOUR_IN_SECONDS );
+							$csv_status = 'processing';
+						}
+					} else {
+						// Fallback to synchronous processing if Action Scheduler unavailable
+						set_time_limit( 300 );
+						$csv_path = self::processErrorsToCSV( $list_id, $settings );
+						if ( $csv_path !== false ) {
+							$csv_status = 'completed';
+						} else {
+							$csv_status = 'failed';
+						}
+					}
+				}
+			}
+		}
+
+		// Use CSV path if available, otherwise fallback to Mailchimp URL
+		$error_file_url = null;
+		if ( ! empty( $csv_path ) ) {
+			// Return relative path for frontend to use download endpoint
+			$error_file_url = $csv_path;
+		} elseif ( ! empty( $first_error_url ) ) {
+			$error_file_url = $first_error_url;
+		}
+
 		return [
-			'state'                => $state,
-			'total_operations'     => $total_operations,
-			'finished_operations'  => $finished_operations,
-			'success_operations'   => $success_operations,
-			'errored_operations'   => $errored_operations,
-			'batch_count'          => $batch_count,
-			'has_any_pending'      => $default['has_any_pending'],
-			'has_first_pending'    => $default['has_first_pending'],
-			'first_error_file_url' => $first_error_url,
-			'last_checked_at'      => current_time( 'mysql' ),
+			'state'                 => $state,
+			'total_operations'      => $total_operations,
+			'finished_operations'   => $finished_operations,
+			'success_operations'    => $success_operations,
+			'errored_operations'    => $errored_operations,
+			'batch_count'           => $batch_count,
+			'has_any_pending'       => $default['has_any_pending'],
+			'has_first_pending'     => $default['has_first_pending'],
+			'first_error_file_url'  => $first_error_url,
+			'failed_users_csv_path' => $csv_path,
+			'csv_processing_status' => $csv_status,
+			'last_checked_at'       => current_time( 'mysql' ),
 		];
+	}
+
+	/**
+	 * Download error tar.gz files from Mailchimp for batches with errors.
+	 *
+	 * @param string $list_id  The Mailchimp list ID.
+	 * @param array  $settings Plugin settings including API credentials.
+	 *
+	 * @return array Array of local tar.gz file paths.
+	 */
+	public static function downloadErrorFiles( string $list_id, array $settings ): array {
+		$downloaded_files = [];
+
+		if ( empty( $list_id ) ) {
+			return $downloaded_files;
+		}
+
+		// Get all batch IDs for this list
+		$option_key = 'wlmi_migration_batches_' . $list_id;
+		$batch_ids  = get_option( $option_key, [] );
+
+		if ( empty( $batch_ids ) || ! is_array( $batch_ids ) ) {
+			return $downloaded_files;
+		}
+
+		// Create log directory structure: wp-content/wlmi-migration-logs/{list_id}/{batch_id}/
+		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		wp_mkdir_p( $log_base_dir );
+
+		foreach ( $batch_ids as $batch_id ) {
+			$batch_id = (string) $batch_id;
+			$status   = MailchimpHelper::getBatchStatus( $settings, $batch_id );
+
+			if ( empty( $status ) ) {
+				continue;
+			}
+
+			// Check if batch has errors
+			$errored_operations = isset( $status->errored_operations ) ? (int) $status->errored_operations : 0;
+			if ( $errored_operations > 0 && isset( $status->response_body_url ) && ! empty( $status->response_body_url ) ) {
+				// Create batch-specific directory
+				$batch_log_dir = $log_base_dir . $list_id . '/' . $batch_id . '/';
+				wp_mkdir_p( $batch_log_dir );
+
+				// Download the error file
+				$download_url = $status->response_body_url;
+				$response     = wp_remote_get( $download_url, [
+					'timeout'   => 300,
+					'sslverify' => true,
+				] );
+
+				if ( is_wp_error( $response ) ) {
+					wc_get_logger()->add( 'wlmi',
+						'Failed to download batch error file for batch_id ' . $batch_id . ': ' . $response->get_error_message() );
+					continue;
+				}
+
+				$file_content  = wp_remote_retrieve_body( $response );
+				$response_code = wp_remote_retrieve_response_code( $response );
+
+				if ( $response_code !== 200 || empty( $file_content ) ) {
+					wc_get_logger()->add( 'wlmi',
+						'Failed to download batch error file for batch_id ' . $batch_id . ': HTTP ' . $response_code );
+					continue;
+				}
+
+				// Save the file
+				$file_path = $batch_log_dir . $batch_id . '-response.tar.gz';
+				$saved     = file_put_contents( $file_path, $file_content );
+
+				if ( $saved === false ) {
+					wc_get_logger()->add( 'wlmi',
+						'Failed to save batch error file for batch_id ' . $batch_id . ' to ' . $file_path );
+				} else {
+					$downloaded_files[] = $file_path;
+					wc_get_logger()->add( 'wlmi',
+						'Downloaded batch error file for batch_id ' . $batch_id . ' (' . $errored_operations . ' errors) to ' . $file_path );
+				}
+			}
+		}
+
+		return $downloaded_files;
+	}
+
+	/**
+	 * Process CSV errors in background (Action Scheduler callback).
+	 *
+	 * @param array $job_data Job data containing list_id.
+	 *
+	 * @return void
+	 */
+	public static function processCSVErrorsBackground( $job_data ) {
+		if ( empty( $job_data ) || ! is_array( $job_data ) ) {
+			return;
+		}
+
+		$list_id = isset( $job_data['list_id'] ) ? (string) $job_data['list_id'] : '';
+		if ( empty( $list_id ) ) {
+			return;
+		}
+
+		$settings = SettingsHelper::gets();
+		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
+			wc_get_logger()->add( 'wlmi', 'Mailchimp settings missing for CSV processing.' );
+			$status_key = 'wlmi_csv_processing_status_' . $list_id;
+			set_transient( $status_key, 'failed', HOUR_IN_SECONDS );
+
+			return;
+		}
+
+		$status_key = 'wlmi_csv_processing_status_' . $list_id;
+		set_transient( $status_key, 'processing', HOUR_IN_SECONDS * 2 );
+
+		set_time_limit( 300 );
+		$csv_path = self::processErrorsToCSV( $list_id, $settings );
+
+		if ( $csv_path !== false ) {
+			set_transient( $status_key, 'completed', HOUR_IN_SECONDS );
+			wc_get_logger()->add( 'wlmi', 'CSV processing completed for list_id ' . $list_id . ' at ' . $csv_path );
+		} else {
+			set_transient( $status_key, 'failed', HOUR_IN_SECONDS );
+			wc_get_logger()->add( 'wlmi', 'CSV processing failed for list_id ' . $list_id );
+		}
+	}
+
+	/**
+	 * Process downloaded error files and generate CSV.
+	 *
+	 * @param string $list_id  The Mailchimp list ID.
+	 * @param array  $settings Plugin settings including API credentials.
+	 *
+	 * @return string|false CSV file path on success, false on failure.
+	 */
+	public static function processErrorsToCSV( string $list_id, array $settings ): string|false {
+		if ( empty( $list_id ) ) {
+			return false;
+		}
+
+		// Get downloaded tar.gz files
+		$tar_gz_files = self::downloadErrorFiles( $list_id, $settings );
+
+		if ( empty( $tar_gz_files ) ) {
+			return false;
+		}
+
+		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
+
+		// Ensure directory exists
+		wp_mkdir_p( dirname( $csv_path ) );
+
+		$errors = []; // Associative array keyed by email for deduplication
+
+		// Process each tar.gz file
+		foreach ( $tar_gz_files as $tar_gz_path ) {
+			if ( ! file_exists( $tar_gz_path ) ) {
+				continue;
+			}
+
+			// Extract tar.gz to temporary directory
+			$extract_dir = dirname( $tar_gz_path ) . '/extracted_' . basename( $tar_gz_path, '.tar.gz' ) . '/';
+			wp_mkdir_p( $extract_dir );
+
+			$extracted = false;
+
+			// Try PharData first (built-in PHP extension)
+			if ( class_exists( '\PharData' ) ) {
+				try {
+					$phar = new \PharData( $tar_gz_path );
+					$phar->extractTo( $extract_dir );
+					$extracted = true;
+				} catch ( \Exception $e ) {
+					wc_get_logger()->add( 'wlmi',
+						'Failed to extract tar.gz using PharData for ' . basename( $tar_gz_path ) . ': ' . $e->getMessage() );
+				}
+			}
+
+			// Fallback to shell tar command
+			if ( ! $extracted ) {
+				$command = sprintf( 'tar -xzf %s -C %s 2>&1', escapeshellarg( $tar_gz_path ), escapeshellarg( $extract_dir ) );
+				exec( $command, $output, $return_var );
+				if ( $return_var === 0 ) {
+					$extracted = true;
+				} else {
+					wc_get_logger()->add( 'wlmi',
+						'Failed to extract tar.gz using shell tar for ' . basename( $tar_gz_path ) . ': ' . implode( ' ', $output ) );
+				}
+			}
+
+			if ( ! $extracted ) {
+				// Clean up and continue with next file
+				if ( is_dir( $extract_dir ) ) {
+					// Remove directory and its contents
+					$files = glob( $extract_dir . '*' );
+					foreach ( $files as $file ) {
+						if ( is_file( $file ) ) {
+							unlink( $file );
+						}
+					}
+					rmdir( $extract_dir );
+				}
+				continue;
+			}
+
+			// Find all JSON files in extracted directory
+			$json_files = glob( $extract_dir . '*.json' );
+
+			foreach ( $json_files as $json_file ) {
+				if ( ! file_exists( $json_file ) || ! is_readable( $json_file ) ) {
+					continue;
+				}
+
+				$json_content = file_get_contents( $json_file );
+				if ( empty( $json_content ) ) {
+					continue;
+				}
+
+				$operations = json_decode( $json_content, true );
+
+				if ( ! is_array( $operations ) ) {
+					wc_get_logger()->add( 'wlmi', 'Invalid JSON format in file: ' . basename( $json_file ) );
+					continue;
+				}
+
+				// Process each operation
+				foreach ( $operations as $operation ) {
+					if ( ! is_array( $operation ) ) {
+						continue;
+					}
+
+					$status_code = isset( $operation['status_code'] ) ? (int) $operation['status_code'] : 0;
+
+					// Only process errors (status_code 400)
+					if ( $status_code !== 400 ) {
+						continue;
+					}
+
+					$email = isset( $operation['operation_id'] ) ? (string) $operation['operation_id'] : '';
+					if ( empty( $email ) ) {
+						continue;
+					}
+
+					// Extract reason from response
+					$reason = 'Unknown error';
+					if ( isset( $operation['response'] ) && ! empty( $operation['response'] ) ) {
+						$response_obj = json_decode( $operation['response'], true );
+						if ( is_array( $response_obj ) && isset( $response_obj['detail'] ) ) {
+							$reason = (string) $response_obj['detail'];
+						}
+					}
+
+					// Deduplicate by email (keep first occurrence)
+					if ( ! isset( $errors[ $email ] ) ) {
+						$errors[ $email ] = $reason;
+					}
+				}
+			}
+
+			// Clean up extracted directory
+			if ( is_dir( $extract_dir ) ) {
+				$files = glob( $extract_dir . '*' );
+				foreach ( $files as $file ) {
+					if ( is_file( $file ) ) {
+						unlink( $file );
+					}
+				}
+				rmdir( $extract_dir );
+			}
+		}
+
+		// If no errors found, return false
+		if ( empty( $errors ) ) {
+			return false;
+		}
+
+		// Generate CSV using ParseCsv library
+		if ( ! class_exists( '\ParseCsv\Csv' ) ) {
+			wc_get_logger()->add( 'wlmi', 'ParseCsv library not available for CSV generation.' );
+
+			return false;
+		}
+
+		try {
+			$csv = new \ParseCsv\Csv();
+			$csv->titles = [ 'email_address', 'reason' ];
+
+			// Convert errors array to CSV rows format
+			$csv_rows = [];
+			foreach ( $errors as $email => $reason ) {
+				$csv_rows[] = [
+					'email_address' => $email,
+					'reason'        => $reason,
+				];
+			}
+
+			// Save CSV file (false = overwrite, single write)
+			$saved = $csv->save( $csv_path, $csv_rows, false );
+
+			if ( $saved ) {
+				wc_get_logger()->add( 'wlmi',
+					'Generated failed users CSV for list_id ' . $list_id . ' with ' . count( $csv_rows ) . ' failed users at ' . $csv_path );
+
+				return $csv_path;
+			} else {
+				wc_get_logger()->add( 'wlmi', 'Failed to save CSV file to ' . $csv_path );
+
+				return false;
+			}
+		} catch ( \Exception $e ) {
+			wc_get_logger()->add( 'wlmi', 'Error generating CSV: ' . $e->getMessage() );
+
+			return false;
+		}
 	}
 
 	/**

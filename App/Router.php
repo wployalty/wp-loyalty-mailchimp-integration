@@ -35,6 +35,7 @@ class Router {
 			add_action( 'wp_ajax_wlmi_test_connection', [ Api::class, 'testConnection' ] );
 			add_action( 'wp_ajax_wlmi_get_lists', [ Api::class, 'getLists' ] );
 			add_action( 'wp_ajax_wlmi_get_migration_status', [ Api::class, 'getMigrationStatus' ] );
+			add_action( 'wp_ajax_wlmi_download_failed_users_csv', [ Api::class, 'downloadFailedUsersCSV' ] );
 
 			// license
 			LicenseHelper::init();
@@ -49,6 +50,6 @@ class Router {
 		add_filter( 'wlr_delete_customer', [ Sync::class, 'onDeleteCustomer' ], 10, 2 );
 		add_action( 'wlr_import_completed', [ MigrationBatch::class, 'onImportCompleted' ], 10, 0 );
 		add_action( 'wlmi_process_mailchimp_migration_batch', [ MigrationBatch::class, 'processBatch' ], 10, 1 );
-		add_action( 'wlmi_check_migration_errors', [ MigrationBatch::class, 'checkMigrationErrors' ], 10, 1 );
+		add_action( 'wlmi_process_csv_errors', [ MigrationBatch::class, 'processCSVErrorsBackground' ], 10, 1 );
 	}
 }

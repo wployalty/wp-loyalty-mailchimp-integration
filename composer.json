@@ -6,7 +6,8 @@
   "require": {
     "php": "7.4.*",
     "mailchimp/marketing": "*",
-    "yahnis-elsts/plugin-update-checker": "^v5.4"
+    "yahnis-elsts/plugin-update-checker": "^v5.4",
+    "parsecsv/php-parsecsv": "^1.0"
   },
   "autoload": {
     "psr-4": {

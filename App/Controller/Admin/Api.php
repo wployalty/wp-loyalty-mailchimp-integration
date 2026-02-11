@@ -143,16 +143,18 @@ class Api {
 
 		if ( empty( $list_id ) ) {
 			wp_send_json_success( [
-				'state'                => 'no_list',
-				'total_operations'     => 0,
-				'finished_operations'  => 0,
-				'success_operations'   => 0,
-				'errored_operations'   => 0,
-				'batch_count'          => 0,
-				'has_any_pending'      => false,
-				'has_first_pending'    => false,
-				'first_error_file_url' => null,
-				'last_checked_at'      => current_time( 'mysql' ),
+				'state'                 => 'no_list',
+				'total_operations'      => 0,
+				'finished_operations'   => 0,
+				'success_operations'    => 0,
+				'errored_operations'    => 0,
+				'batch_count'           => 0,
+				'has_any_pending'       => false,
+				'has_first_pending'     => false,
+				'first_error_file_url'  => null,
+				'failed_users_csv_path' => null,
+				'csv_processing_status' => 'not_started',
+				'last_checked_at'       => current_time( 'mysql' ),
 			] );
 
 			return;
@@ -168,6 +170,56 @@ class Api {
 		} catch ( \Exception $e ) {
 			wp_send_json_error( [ 'message' => __( 'Failed to fetch migration status', 'wp-loyalty-mailchimp-integration' ) . ': ' . $e->getMessage() ] );
 		}
+	}
+
+	/**
+	 * Download failed users CSV file.
+	 *
+	 * @return void
+	 */
+	public static function downloadFailedUsersCSV() {
+		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+			wp_die( esc_html__( 'Security check failed', 'wp-loyalty-mailchimp-integration' ) );
+		}
+
+		$settings = SettingsHelper::gets();
+		$list_id  = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
+
+		if ( empty( $list_id ) ) {
+			wp_die( esc_html__( 'No list configured', 'wp-loyalty-mailchimp-integration' ) );
+		}
+
+		// Build expected CSV path
+		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
+
+		// Security: Validate path is within expected directory (prevent directory traversal)
+		$real_csv_path     = realpath( $csv_path );
+		$real_log_base_dir = realpath( $log_base_dir );
+
+		if ( $real_csv_path === false || $real_log_base_dir === false ) {
+			wp_die( esc_html__( 'CSV file not found', 'wp-loyalty-mailchimp-integration' ) );
+		}
+
+		if ( strpos( $real_csv_path, $real_log_base_dir ) !== 0 ) {
+			wp_die( esc_html__( 'Invalid file path', 'wp-loyalty-mailchimp-integration' ) );
+		}
+
+		// Check file exists and is readable
+		if ( ! file_exists( $csv_path ) || ! is_readable( $csv_path ) ) {
+			wp_die( esc_html__( 'CSV file not found or not readable', 'wp-loyalty-mailchimp-integration' ) );
+		}
+
+		// Serve file with proper headers
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="failed-users-' . esc_attr( $list_id ) . '.csv"' );
+		header( 'Content-Length: ' . filesize( $csv_path ) );
+		header( 'Cache-Control: no-cache, must-revalidate' );
+		header( 'Pragma: no-cache' );
+		header( 'Expires: 0' );
+
+		readfile( $csv_path );
+		exit;
 	}
 
 }
