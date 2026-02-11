@@ -6,6 +6,7 @@ use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Input;
 use WLMI\App\Helper\WC;
 use WLMI\App\Helper\Settings as SettingsHelper;
+use WLMI\App\Controller\MigrationBatch;
 
 defined( 'ABSPATH' ) or die;
 
@@ -124,6 +125,48 @@ class Api {
 			] );
 		} catch ( \Exception $e ) {
 			wp_send_json_error( [ 'message' => __( 'Failed to fetch lists', 'wp-loyalty-mailchimp-integration' ) . ': ' . $e->getMessage() ] );
+		}
+	}
+
+	/**
+	 * Get consolidated migration status for the current list.
+	 *
+	 * @return void
+	 */
+	public static function getMigrationStatus() {
+		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
+		}
+
+		$settings = SettingsHelper::gets();
+		$list_id  = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
+
+		if ( empty( $list_id ) ) {
+			wp_send_json_success( [
+				'state'                => 'no_list',
+				'total_operations'     => 0,
+				'finished_operations'  => 0,
+				'success_operations'   => 0,
+				'errored_operations'   => 0,
+				'batch_count'          => 0,
+				'has_any_pending'      => false,
+				'has_first_pending'    => false,
+				'first_error_file_url' => null,
+				'last_checked_at'      => current_time( 'mysql' ),
+			] );
+
+			return;
+		}
+
+		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
+			wp_send_json_error( [ 'message' => __( 'API connection not configured', 'wp-loyalty-mailchimp-integration' ) ] );
+		}
+
+		try {
+			$status = MigrationBatch::getConsolidatedStatus( $list_id, $settings );
+			wp_send_json_success( $status );
+		} catch ( \Exception $e ) {
+			wp_send_json_error( [ 'message' => __( 'Failed to fetch migration status', 'wp-loyalty-mailchimp-integration' ) . ': ' . $e->getMessage() ] );
 		}
 	}
 

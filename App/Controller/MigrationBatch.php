@@ -355,6 +355,120 @@ class MigrationBatch {
 	}
 
 	/**
+	 * Get consolidated migration status for a list.
+	 *
+	 * Aggregates status across all Mailchimp batches and Action Scheduler state
+	 * for the given list_id.
+	 *
+	 * @param string $list_id  The Mailchimp list ID.
+	 * @param array  $settings Plugin settings including API credentials.
+	 *
+	 * @return array Consolidated status data.
+	 */
+	public static function getConsolidatedStatus( string $list_id, array $settings ): array {
+		$default = [
+			'state'               => 'no_runs',
+			'total_operations'    => 0,
+			'finished_operations' => 0,
+			'success_operations'  => 0,
+			'errored_operations'  => 0,
+			'batch_count'         => 0,
+			'has_any_pending'     => false,
+			'has_first_pending'   => false,
+			'first_error_file_url'=> null,
+			'last_checked_at'     => current_time( 'mysql' ),
+		];
+
+		if ( empty( $list_id ) ) {
+			return $default;
+		}
+
+		// Get Action Scheduler pending state
+		$pending_state                = self::getPendingMigrationState( $list_id );
+		$default['has_any_pending']   = $pending_state['has_any_batch_pending'];
+		$default['has_first_pending'] = $pending_state['has_first_batch_pending'];
+
+		// Get stored batch IDs
+		$option_key = 'wlmi_migration_batches_' . $list_id;
+		$batch_ids  = get_option( $option_key, [] );
+
+		if ( empty( $batch_ids ) || ! is_array( $batch_ids ) ) {
+			// No batches yet, but check if any are pending in Action Scheduler
+			if ( $default['has_any_pending'] ) {
+				$default['state'] = 'in_progress';
+			}
+
+			return $default;
+		}
+
+		// Aggregate status from all batches (limit to most recent 50 to avoid overload)
+		$batch_ids = array_slice( $batch_ids, - 50 );
+
+		$total_operations    = 0;
+		$finished_operations = 0;
+		$errored_operations  = 0;
+		$batch_count         = 0;
+		$first_error_url     = null;
+		$raw_states          = [];
+
+		foreach ( $batch_ids as $batch_id ) {
+			$batch_id = (string) $batch_id;
+			$status   = MailchimpHelper::getBatchStatus( $settings, $batch_id );
+
+			if ( empty( $status ) ) {
+				continue;
+			}
+
+			$batch_count ++;
+			$total_operations    += isset( $status->total_operations ) ? (int) $status->total_operations : 0;
+			$finished_operations += isset( $status->finished_operations ) ? (int) $status->finished_operations : 0;
+			$errored_operations  += isset( $status->errored_operations ) ? (int) $status->errored_operations : 0;
+
+			if ( isset( $status->status ) ) {
+				$raw_states[] = strtolower( (string) $status->status );
+			}
+
+			// Capture first error file URL
+			if ( $first_error_url === null && isset( $status->response_body_url ) && ! empty( $status->response_body_url ) ) {
+				$batch_errored = isset( $status->errored_operations ) ? (int) $status->errored_operations : 0;
+				if ( $batch_errored > 0 ) {
+					$first_error_url = $status->response_body_url;
+				}
+			}
+		}
+
+		$success_operations = max( 0, $finished_operations - $errored_operations );
+
+		// Determine overall state
+		$state = 'completed';
+		if ( $default['has_any_pending'] ) {
+			$state = 'in_progress';
+		} elseif ( ! empty( $raw_states ) ) {
+			// Check if any batch is still running/pending on Mailchimp side
+			$in_progress_states = [ 'pending', 'started', 'running', 'finalizing' ];
+			foreach ( $raw_states as $rs ) {
+				if ( in_array( $rs, $in_progress_states, true ) ) {
+					$state = 'in_progress';
+					break;
+				}
+			}
+		}
+
+		return [
+			'state'                => $state,
+			'total_operations'     => $total_operations,
+			'finished_operations'  => $finished_operations,
+			'success_operations'   => $success_operations,
+			'errored_operations'   => $errored_operations,
+			'batch_count'          => $batch_count,
+			'has_any_pending'      => $default['has_any_pending'],
+			'has_first_pending'    => $default['has_first_pending'],
+			'first_error_file_url' => $first_error_url,
+			'last_checked_at'      => current_time( 'mysql' ),
+		];
+	}
+
+	/**
 	 * Check migration errors and download error files.
 	 *
 	 * @param   array  $job_data
