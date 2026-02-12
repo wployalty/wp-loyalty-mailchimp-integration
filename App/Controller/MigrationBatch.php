@@ -6,6 +6,7 @@ use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Settings as SettingsHelper;
 use WLMI\App\Helper\Util;
 use Wlr\App\Models\Users;
+use splitbrain\PHPArchive\Tar;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -673,17 +674,23 @@ class MigrationBatch {
 	 *
 	 * @return string|false CSV file path on success, false on failure.
 	 */
-	public static function processErrorsToCSV( string $list_id, array $settings ): string|false {
+	public static function processErrorsToCSV( string $list_id, array $settings ) {
 		if ( empty( $list_id ) ) {
+			wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Empty list_id provided' );
 			return false;
 		}
+
+		wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Starting CSV processing for list_id ' . $list_id );
 
 		// Get downloaded tar.gz files
 		$tar_gz_files = self::downloadErrorFiles( $list_id, $settings );
 
 		if ( empty( $tar_gz_files ) ) {
+			wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: No tar.gz files found for list_id ' . $list_id );
 			return false;
 		}
+
+		wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Found ' . count( $tar_gz_files ) . ' tar.gz file(s) to process' );
 
 		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
 		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
@@ -696,72 +703,104 @@ class MigrationBatch {
 		// Process each tar.gz file
 		foreach ( $tar_gz_files as $tar_gz_path ) {
 			if ( ! file_exists( $tar_gz_path ) ) {
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Skipping non-existent file: ' . $tar_gz_path );
 				continue;
 			}
 
-			// Extract tar.gz to temporary directory
-			$extract_dir = dirname( $tar_gz_path ) . '/extracted_' . basename( $tar_gz_path, '.tar.gz' ) . '/';
-			wp_mkdir_p( $extract_dir );
+			wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Processing tar.gz file: ' . basename( $tar_gz_path ) );
 
-			$extracted = false;
+			// Extract tar.gz: use splitbrain/php-archive library
+			$extract_dir = dirname( $tar_gz_path ) . DIRECTORY_SEPARATOR . 'extracted_' . basename( $tar_gz_path, '.tar.gz' );
+			$extracted   = false;
 
-			// Try PharData first (built-in PHP extension)
-			if ( class_exists( '\PharData' ) ) {
-				try {
-					$phar = new \PharData( $tar_gz_path );
-					$phar->extractTo( $extract_dir );
-					$extracted = true;
-				} catch ( \Exception $e ) {
-					wc_get_logger()->add( 'wlmi',
-						'Failed to extract tar.gz using PharData for ' . basename( $tar_gz_path ) . ': ' . $e->getMessage() );
+			try {
+				// Ensure the tar.gz file exists and is readable
+				if ( ! file_exists( $tar_gz_path ) || ! is_readable( $tar_gz_path ) ) {
+					throw new \Exception( 'Tar.gz file does not exist or is not readable' );
 				}
+
+				// Clean up extract directory if it exists (handle dirty state from previous runs)
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Cleaning up extract directory: ' . $extract_dir );
+				self::cleanupDirectory( $extract_dir );
+
+				// Create fresh extract directory
+				if ( ! wp_mkdir_p( $extract_dir ) ) {
+					throw new \Exception( 'Failed to create extraction directory' );
+				}
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Created extract directory: ' . $extract_dir );
+
+				// Get real path to handle spaces and symlinks properly
+				$real_tar_gz_path = realpath( $tar_gz_path );
+				if ( $real_tar_gz_path === false ) {
+					throw new \Exception( 'Cannot resolve real path for tar.gz file' );
+				}
+
+				// Use splitbrain/php-archive to extract tar.gz directly (handles gzip automatically)
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Opening tar.gz file: ' . basename( $real_tar_gz_path ) );
+				$tar = new Tar();
+				$tar->open( $real_tar_gz_path );
+
+				// Extract to directory (library handles gzip decompression automatically)
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Extracting to: ' . $extract_dir );
+				$extracted_files = $tar->extract( $extract_dir );
+				$tar->close();
+
+				$extracted = true;
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Successfully extracted ' . count( $extracted_files ) . ' file(s) from ' . basename( $tar_gz_path ) );
+			} catch ( \Exception $e ) {
+				wc_get_logger()->add( 'wlmi',
+					'processErrorsToCSV: Failed to extract tar.gz using splitbrain/php-archive for ' . basename( $tar_gz_path ) . ': ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString() );
+
+				// Clean up failed extraction directory
+				self::cleanupDirectory( $extract_dir );
+				continue;
 			}
 
-			// Fallback to shell tar command
 			if ( ! $extracted ) {
-				$command = sprintf( 'tar -xzf %s -C %s 2>&1', escapeshellarg( $tar_gz_path ), escapeshellarg( $extract_dir ) );
-				exec( $command, $output, $return_var );
-				if ( $return_var === 0 ) {
-					$extracted = true;
-				} else {
-					wc_get_logger()->add( 'wlmi',
-						'Failed to extract tar.gz using shell tar for ' . basename( $tar_gz_path ) . ': ' . implode( ' ', $output ) );
-				}
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Extraction failed for ' . basename( $tar_gz_path ) );
+				continue;
 			}
 
-			if ( ! $extracted ) {
-				// Clean up and continue with next file
-				if ( is_dir( $extract_dir ) ) {
-					// Remove directory and its contents
-					$files = glob( $extract_dir . '*' );
-					foreach ( $files as $file ) {
-						if ( is_file( $file ) ) {
-							unlink( $file );
-						}
+			// Find all JSON files in extracted directory (top-level and in subdirs when extractTo preserved structure)
+			$json_files = [];
+			if ( is_dir( $extract_dir ) ) {
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Searching for JSON files in: ' . $extract_dir );
+				$dir_iter  = new \RecursiveDirectoryIterator( $extract_dir, \RecursiveDirectoryIterator::SKIP_DOTS );
+				$flat_iter = new \RecursiveIteratorIterator( $dir_iter );
+				foreach ( $flat_iter as $file ) {
+					if ( $file->isFile() && strtolower( $file->getExtension() ) === 'json' ) {
+						$json_files[] = $file->getPathname();
 					}
-					rmdir( $extract_dir );
 				}
-				continue;
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Found ' . count( $json_files ) . ' JSON file(s) in ' . basename( $tar_gz_path ) );
+			} else {
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Extract directory does not exist: ' . $extract_dir );
 			}
 
-			// Find all JSON files in extracted directory
-			$json_files = glob( $extract_dir . '*.json' );
-
+			$operations_processed = 0;
+			$errors_found_in_file = 0;
 			foreach ( $json_files as $json_file ) {
 				if ( ! file_exists( $json_file ) || ! is_readable( $json_file ) ) {
+					wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Skipping unreadable JSON file: ' . basename( $json_file ) );
 					continue;
 				}
 
 				$json_content = file_get_contents( $json_file );
 				if ( empty( $json_content ) ) {
+					wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Skipping empty JSON file: ' . basename( $json_file ) );
 					continue;
 				}
 
 				$operations = json_decode( $json_content, true );
 
 				if ( ! is_array( $operations ) ) {
-					wc_get_logger()->add( 'wlmi', 'Invalid JSON format in file: ' . basename( $json_file ) );
+					wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Invalid JSON format in file: ' . basename( $json_file ) . ' (not an array)' );
 					continue;
+				}
+
+				// Mailchimp may return a single operation object per file; normalize to array of operations
+				if ( isset( $operations['status_code'] ) || isset( $operations['operation_id'] ) ) {
+					$operations = [ $operations ];
 				}
 
 				// Process each operation
@@ -770,6 +809,7 @@ class MigrationBatch {
 						continue;
 					}
 
+					$operations_processed++;
 					$status_code = isset( $operation['status_code'] ) ? (int) $operation['status_code'] : 0;
 
 					// Only process errors (status_code 400)
@@ -779,6 +819,7 @@ class MigrationBatch {
 
 					$email = isset( $operation['operation_id'] ) ? (string) $operation['operation_id'] : '';
 					if ( empty( $email ) ) {
+						wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Operation with status_code 400 has empty operation_id' );
 						continue;
 					}
 
@@ -794,33 +835,32 @@ class MigrationBatch {
 					// Deduplicate by email (keep first occurrence)
 					if ( ! isset( $errors[ $email ] ) ) {
 						$errors[ $email ] = $reason;
+						$errors_found_in_file++;
 					}
 				}
 			}
+			wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Processed ' . $operations_processed . ' operation(s) from ' . basename( $tar_gz_path ) . ', found ' . $errors_found_in_file . ' error(s)' );
 
-			// Clean up extracted directory
-			if ( is_dir( $extract_dir ) ) {
-				$files = glob( $extract_dir . '*' );
-				foreach ( $files as $file ) {
-					if ( is_file( $file ) ) {
-						unlink( $file );
-					}
-				}
-				rmdir( $extract_dir );
-			}
+			// Clean up extracted directory after processing (remove temporary files)
+			self::cleanupDirectory( $extract_dir );
 		}
+
+		wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Finished processing all tar.gz files. Total errors collected: ' . count( $errors ) );
 
 		// If no errors found, return false
 		if ( empty( $errors ) ) {
+			wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: No errors found in any processed files, returning false' );
 			return false;
 		}
 
 		// Generate CSV using ParseCsv library
 		if ( ! class_exists( '\ParseCsv\Csv' ) ) {
-			wc_get_logger()->add( 'wlmi', 'ParseCsv library not available for CSV generation.' );
+			wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: ParseCsv library not available for CSV generation.' );
 
 			return false;
 		}
+
+		wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Generating CSV file at: ' . $csv_path );
 
 		try {
 			$csv = new \ParseCsv\Csv();
@@ -835,21 +875,23 @@ class MigrationBatch {
 				];
 			}
 
+			wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Prepared ' . count( $csv_rows ) . ' CSV row(s), attempting to save' );
+
 			// Save CSV file (false = overwrite, single write)
 			$saved = $csv->save( $csv_path, $csv_rows, false );
 
 			if ( $saved ) {
 				wc_get_logger()->add( 'wlmi',
-					'Generated failed users CSV for list_id ' . $list_id . ' with ' . count( $csv_rows ) . ' failed users at ' . $csv_path );
+					'processErrorsToCSV: Successfully generated CSV for list_id ' . $list_id . ' with ' . count( $csv_rows ) . ' failed users at ' . $csv_path );
 
 				return $csv_path;
 			} else {
-				wc_get_logger()->add( 'wlmi', 'Failed to save CSV file to ' . $csv_path );
+				wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: CSV save() returned false for path: ' . $csv_path );
 
 				return false;
 			}
 		} catch ( \Exception $e ) {
-			wc_get_logger()->add( 'wlmi', 'Error generating CSV: ' . $e->getMessage() );
+			wc_get_logger()->add( 'wlmi', 'processErrorsToCSV: Exception during CSV generation: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString() );
 
 			return false;
 		}
@@ -951,6 +993,44 @@ class MigrationBatch {
 
 		if ( ! $has_errors ) {
 			wc_get_logger()->add( 'wlmi', 'No errors found in migration batches for list_id ' . $list_id );
+		}
+	}
+
+	/**
+	 * Recursively remove a directory and all its contents.
+	 * Handles dirty state cleanup before extraction and post-extraction cleanup.
+	 *
+	 * @param string $dir Directory path to remove.
+	 *
+	 * @return void
+	 */
+	private static function cleanupDirectory( string $dir ): void {
+		if ( ! file_exists( $dir ) ) {
+			return;
+		}
+
+		if ( is_file( $dir ) ) {
+			@unlink( $dir );
+			return;
+		}
+
+		if ( ! is_dir( $dir ) ) {
+			return;
+		}
+
+		try {
+			$files = new \RecursiveIteratorIterator(
+				new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
+				\RecursiveIteratorIterator::CHILD_FIRST
+			);
+
+			foreach ( $files as $fileinfo ) {
+				$todo = ( $fileinfo->isDir() ? 'rmdir' : 'unlink' );
+				@$todo( $fileinfo->getRealPath() );
+			}
+			@rmdir( $dir );
+		} catch ( \Exception $e ) {
+			wc_get_logger()->add( 'wlmi', 'Failed to clean up directory ' . $dir . ': ' . $e->getMessage() );
 		}
 	}
 }
