@@ -68,7 +68,7 @@ const Settings = () => {
     const getSettings = async (wlmi_nonce = appState.settings_nonce) => {
         setLoading(true);
         let params = {
-            action: "wlmi_launcher_settings",
+            action: "wlmi_admin_settings",
             wlmi_nonce,
         };
         
@@ -232,7 +232,7 @@ const Settings = () => {
         setDisableSave(true);
         let params = {
             wlmi_nonce,
-            action: "wlmi_launcher_save_settings",
+            action: "wlmi_save_settings",
         };
         params.settings = btoa(unescape(encodeURIComponent(JSON.stringify(settings))));
 

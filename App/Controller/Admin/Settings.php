@@ -18,7 +18,7 @@ class Settings {
 	 * @return void
 	 */
 	public static function getSettings() {
-		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
 		$settings = SettingsHelper::gets();
@@ -34,7 +34,7 @@ class Settings {
 	 * @return void
 	 */
 	public static function saveSettings() {
-		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
 		$settings = (string) Input::get( 'settings' );
