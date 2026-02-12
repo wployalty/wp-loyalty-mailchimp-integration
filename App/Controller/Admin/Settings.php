@@ -78,7 +78,7 @@ class Settings {
 		$list_saved_first_time = ! empty( $list_id ) && empty( $old_list_id );
 
 		$should_trigger_migration = $list_saved_first_time || $list_changed;
-		if ( $list_changed ) {
+		if ( $should_trigger_migration ) {
 			$merge_fields_ready = MailchimpHelper::ensureMergeFields( $list_id, $settings );
 			if ( ! $merge_fields_ready ) {
 				wp_send_json_error( [ 'message' => __( 'Unable to setup Mailchimp merge fields for the selected list.', 'wp-loyalty-mailchimp-integration' ) ] );
