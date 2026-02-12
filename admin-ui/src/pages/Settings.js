@@ -291,8 +291,8 @@ const Settings = () => {
                 saveDisabled={disableSave}
             />
 
-            <div className="flex gap-x-6 items-start w-full min-h-[590px]">
-                <div className="w-full h-full flex flex-col border border-card_border rounded-xl bg-white p-6 overflow-y-auto">
+            <div className="flex gap-x-6 items-stretch w-full min-h-[590px]">
+                <div className="w-full flex-1 min-h-full flex flex-col border border-card_border rounded-xl bg-white p-6 overflow-y-auto">
                     {loading ? (
                         <div className="flex flex-col gap-y-4 w-full">
                             <ShimmerLoading height="h-8" width="w-1/4" />
