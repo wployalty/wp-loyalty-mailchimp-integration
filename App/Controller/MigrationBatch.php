@@ -699,53 +699,43 @@ class MigrationBatch {
 				continue;
 			}
 
-			// Extract tar.gz to temporary directory
-			$extract_dir = dirname( $tar_gz_path ) . '/extracted_' . basename( $tar_gz_path, '.tar.gz' ) . '/';
+			// Extract tar.gz: decompress gzip first, then extract tar via PharData
+			$extract_dir = dirname( $tar_gz_path ) . DIRECTORY_SEPARATOR . 'extracted_' . basename( $tar_gz_path, '.tar.gz' );
+			$tar_path    = dirname( $tar_gz_path ) . DIRECTORY_SEPARATOR . basename( $tar_gz_path, '.gz' );
+
 			wp_mkdir_p( $extract_dir );
 
-			$extracted = false;
+			try {
+				// Step 1: Decompress .tar.gz → .tar using gzdecode (handles paths with spaces safely)
+				$gz_content  = file_get_contents( $tar_gz_path );
+				$tar_content = ( $gz_content !== false ) ? gzdecode( $gz_content ) : false;
 
-			// Try PharData first (built-in PHP extension)
-			if ( class_exists( '\PharData' ) ) {
-				try {
-					$phar = new \PharData( $tar_gz_path );
-					$phar->extractTo( $extract_dir );
-					$extracted = true;
-				} catch ( \Exception $e ) {
-					wc_get_logger()->add( 'wlmi',
-						'Failed to extract tar.gz using PharData for ' . basename( $tar_gz_path ) . ': ' . $e->getMessage() );
+				if ( $tar_content === false ) {
+					throw new \RuntimeException( 'Failed to decompress gzip content' );
 				}
-			}
 
-			// Fallback to shell tar command
-			if ( ! $extracted ) {
-				$command = sprintf( 'tar -xzf %s -C %s 2>&1', escapeshellarg( $tar_gz_path ), escapeshellarg( $extract_dir ) );
-				exec( $command, $output, $return_var );
-				if ( $return_var === 0 ) {
-					$extracted = true;
-				} else {
-					wc_get_logger()->add( 'wlmi',
-						'Failed to extract tar.gz using shell tar for ' . basename( $tar_gz_path ) . ': ' . implode( ' ', $output ) );
-				}
-			}
+				file_put_contents( $tar_path, $tar_content );
+				unset( $gz_content, $tar_content ); // Free memory
 
-			if ( ! $extracted ) {
-				// Clean up and continue with next file
-				if ( is_dir( $extract_dir ) ) {
-					// Remove directory and its contents
-					$files = glob( $extract_dir . '*' );
-					foreach ( $files as $file ) {
-						if ( is_file( $file ) ) {
-							unlink( $file );
-						}
-					}
-					rmdir( $extract_dir );
+				// Step 2: Extract .tar → directory using PharData (overwrite existing files)
+				$phar = new \PharData( $tar_path );
+				$phar->extractTo( $extract_dir, null, true );
+
+				// Clean up temporary .tar file
+				unlink( $tar_path );
+			} catch ( \Exception $e ) {
+				wc_get_logger()->add( 'wlmi',
+					'Failed to extract tar.gz for ' . basename( $tar_gz_path ) . ': ' . $e->getMessage() );
+
+				// Clean up .tar if left behind
+				if ( file_exists( $tar_path ) ) {
+					unlink( $tar_path );
 				}
 				continue;
 			}
 
-			// Find all JSON files in extracted directory
-			$json_files = glob( $extract_dir . '*.json' );
+			// Find all JSON files in extracted directory (may contain files from previous runs too)
+			$json_files = glob( $extract_dir . DIRECTORY_SEPARATOR . '*.json' );
 
 			foreach ( $json_files as $json_file ) {
 				if ( ! file_exists( $json_file ) || ! is_readable( $json_file ) ) {
@@ -799,15 +789,7 @@ class MigrationBatch {
 			}
 
 			// Clean up extracted directory
-			if ( is_dir( $extract_dir ) ) {
-				$files = glob( $extract_dir . '*' );
-				foreach ( $files as $file ) {
-					if ( is_file( $file ) ) {
-						unlink( $file );
-					}
-				}
-				rmdir( $extract_dir );
-			}
+			self::removeDirectory( $extract_dir );
 		}
 
 		// If no errors found, return false
@@ -952,5 +934,34 @@ class MigrationBatch {
 		if ( ! $has_errors ) {
 			wc_get_logger()->add( 'wlmi', 'No errors found in migration batches for list_id ' . $list_id );
 		}
+	}
+
+	/**
+	 * Recursively remove a directory and all its contents.
+	 *
+	 * @param string $dir Absolute path to the directory.
+	 *
+	 * @return void
+	 */
+	private static function removeDirectory( string $dir ): void {
+		if ( ! is_dir( $dir ) ) {
+			return;
+		}
+
+		$items = scandir( $dir );
+		if ( $items === false ) {
+			return;
+		}
+
+		foreach ( $items as $item ) {
+			if ( $item === '.' || $item === '..' ) {
+				continue;
+			}
+
+			$path = $dir . DIRECTORY_SEPARATOR . $item;
+			is_dir( $path ) ? self::removeDirectory( $path ) : unlink( $path );
+		}
+
+		rmdir( $dir );
 	}
 }
