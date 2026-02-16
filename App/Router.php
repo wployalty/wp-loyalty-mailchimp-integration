@@ -26,12 +26,12 @@ class Router {
 			add_action( 'admin_enqueue_scripts', [ Common::class, 'adminScripts' ], 100 );
 
 			//common
-			add_action( 'wp_ajax_wlmi_launcher_local_data', [ Labels::class, 'getLocalData' ] );
-			add_action( 'wp_ajax_wlmi_get_launcher_labels', [ Labels::class, 'getLabels' ] );
+			add_action( 'wp_ajax_wlmi_admin_local_data', [ Labels::class, 'getLocalData' ] );
+			add_action( 'wp_ajax_wlmi_get_labels', [ Labels::class, 'getLabels' ] );
 			// setting
-			add_action( 'wp_ajax_wlmi_launcher_settings', [ Settings::class, 'getSettings' ] );
+			add_action( 'wp_ajax_wlmi_admin_settings', [ Settings::class, 'getSettings' ] );
 			//save settings
-			add_action( 'wp_ajax_wlmi_launcher_save_settings', [ Settings::class, 'saveSettings' ] );
+			add_action( 'wp_ajax_wlmi_save_settings', [ Settings::class, 'saveSettings' ] );
 			add_action( 'wp_ajax_wlmi_test_connection', [ Api::class, 'testConnection' ] );
 			add_action( 'wp_ajax_wlmi_get_lists', [ Api::class, 'getLists' ] );
 			add_action( 'wp_ajax_wlmi_get_migration_status', [ Api::class, 'getMigrationStatus' ] );

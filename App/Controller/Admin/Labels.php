@@ -34,10 +34,10 @@ class Labels {
 			'common_nonce'            => WC::createNonce( 'common_nonce' ),
 			'design_nonce'            => WC::createNonce( 'wlmi_design_settings' ),
 			'content_nonce'           => WC::createNonce( 'wlmi_content_settings' ),
-			'launcher_nonce'          => WC::createNonce( 'wlmi_launcher_settings' ),
-			'settings_nonce'          => WC::createNonce( 'wlmi_launcher_settings' ),
+			'admin_nonce'             => WC::createNonce( 'wlmi_admin_settings' ),
+			'settings_nonce'          => WC::createNonce( 'wlmi_admin_settings' ),
 		];
-		$localize = apply_filters( 'wlmi_launcher_local_data', $localize );
+		$localize = apply_filters( 'wlmi_admin_local_data', $localize );
 		wp_send_json_success( $localize );
 	}
 

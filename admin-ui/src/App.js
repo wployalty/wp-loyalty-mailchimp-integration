@@ -14,7 +14,7 @@ const App = () => {
     const [commonState, setCommonState] = React.useState({});
     React.useLayoutEffect(() => {
         const params = {
-            action: "wlmi_launcher_local_data",
+            action: "wlmi_admin_local_data",
             wlmi_nonce: wlmi_settings_form.local_data_nonce,
         }
         postRequest(params).then((json) => {
@@ -22,7 +22,7 @@ const App = () => {
             if (resJSON.success === true && resJSON.data !== null && resJSON.data !== {}) {
                 setAppState(resJSON.data);
                 let labelParams = {
-                    action: "wlmi_get_launcher_labels",
+                    action: "wlmi_get_labels",
                     wlmi_nonce: resJSON.data.common_nonce,
                 }
                 postRequest(labelParams).then(json => {

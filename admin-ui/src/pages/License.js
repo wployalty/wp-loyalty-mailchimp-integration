@@ -22,7 +22,7 @@ const License = () => {
         setLoading(true);
         try {
             const params = {
-                action: "wlmi_launcher_settings",
+                action: "wlmi_admin_settings",
                 wlmi_nonce: appState.settings_nonce,
             };
             const json = await postRequest(params);

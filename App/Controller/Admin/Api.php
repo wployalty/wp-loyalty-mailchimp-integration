@@ -18,7 +18,7 @@ class Api {
 	 * @return void
 	 */
 	public static function testConnection() {
-		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
 		$api_key = Input::get( 'api_key' );
@@ -41,7 +41,7 @@ class Api {
 	 * @return void
 	 */
 	public static function getLists() {
-		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
 
@@ -135,7 +135,7 @@ class Api {
 	 * @return void
 	 */
 	public static function getMigrationStatus() {
-		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
 
@@ -181,7 +181,7 @@ class Api {
 	 * @return void
 	 */
 	public static function downloadFailedUsersCSV() {
-		if ( ! WC::isSecurityValid( 'wlmi_launcher_settings' ) ) {
+		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
 			wp_die( esc_html__( 'Security check failed', 'wp-loyalty-mailchimp-integration' ) );
 		}
 
