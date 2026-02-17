@@ -1,14 +1,13 @@
 import React from 'react';
 import TitleActionContainer from "../components/Common/TitleActionContainer";
 import ShimmerLoading from "../components/Common/ShimmerLoading";
-import ListSelect from "../components/Common/ListSelect";
 import { CommonContext, UiLabelContext } from "../Context";
 import { postRequest } from "../components/Common/postRequest";
-import { alertifyToast, errorDisplayer, getJSONData, getChosenLabel } from "../helpers/utilities";
-import Input from "../components/Common/Input";
-import Button from "../components/Common/Button";
-import DropdownWrapper from "../components/Common/DropdownWrapper";
+import { alertifyToast, errorDisplayer, getJSONData } from "../helpers/utilities";
 import EmptyPage from "../components/Common/EmptyPage";
+import ConnectionSettings from "./ConnectionSettings";
+import ListSettings from "./ListSettings";
+import MigrationStatus from "./MigrationStatus";
 
 const Settings = () => {
     const {appState} = React.useContext(CommonContext);
@@ -20,12 +19,12 @@ const Settings = () => {
         migration_choice: ""
     });
     const [loading, setLoading] = React.useState(true);
-    const [testLoading, setTestLoading] = React.useState(false);
+    const [connectionLoading, setConnectionLoading] = React.useState(false);
     const [disableSave, setDisableSave] = React.useState(false);
     const [errorList, setErrorList] = React.useState([]);
     const [errors, setErrors] = React.useState({});
     const [isConnected, setIsConnected] = React.useState(false);
-    const [settingsSaved, setSettingsSaved] = React.useState(false);
+    const [savedListId, setSavedListId] = React.useState("");
     const [licenseStatus, setLicenseStatus] = React.useState("inactive");
 
     // List selection state
@@ -80,29 +79,25 @@ const Settings = () => {
                  if (!loadedSettings.api_key) loadedSettings.api_key = ""; 
                 if (!loadedSettings.list_id) loadedSettings.list_id = "";
                 if (!loadedSettings.migration_choice) loadedSettings.migration_choice = "";
-                if (typeof loadedSettings.wlmi_request_migration_from_admin === 'undefined') {
-                    loadedSettings.wlmi_request_migration_from_admin = false;
-                }
                  setSettings(loadedSettings);
                 setLicenseStatus(loadedSettings.license_status || "inactive");
                 setIsConnected(loadedSettings.connected || false);
-                // Only mark as saved if API key actually exists in saved settings
-                // This prevents showing list selector when settings are deleted but defaults are returned
-                const hasSavedApiKey = loadedSettings.api_key && loadedSettings.api_key.trim() !== "";
-                setSettingsSaved(hasSavedApiKey);
+                setSavedListId(loadedSettings.list_id || "");
 
-                // If connected and settings are saved, fetch initial lists
-                if (loadedSettings.connected && hasSavedApiKey) {
+                // If connected, fetch initial lists
+                if (loadedSettings.connected) {
                     fetchLists('', 0, true, false, loadedSettings.list_id);
+                } else {
+                    setLists([]);
+                    setSelectedList(null);
                 }
 
                 // If list_id is configured, fetch migration status
                 if (loadedSettings.list_id && loadedSettings.list_id.trim() !== "") {
                     fetchMigrationStatus();
+                } else {
+                    setMigrationStatus(null);
                 }
-            } else {
-                // No settings found, mark as not saved
-                setSettingsSaved(false);
             }
         } catch (e) {
             // Handle error
@@ -229,6 +224,21 @@ const Settings = () => {
     };
 
     const saveSettings = (wlmi_nonce = appState.settings_nonce) => {
+        if (!isConnected) {
+            alertifyToast(labels.settings?.connect_required || "Connect Mailchimp before saving.", false);
+            return;
+        }
+        if (!settings.list_id) {
+            alertifyToast(labels.settings?.list_required || "Please select a Mailchimp list.", false);
+            return;
+        }
+        const listTransition = settings.list_id !== savedListId;
+        if (listTransition && !settings.migration_choice) {
+            setErrorList(["migration_choice"]);
+            alertifyToast(labels.settings?.migration_choice_required || "Please choose whether to migrate existing users.", false);
+            return;
+        }
+
         setDisableSave(true);
         let params = {
             wlmi_nonce,
@@ -242,8 +252,6 @@ const Settings = () => {
                 alertifyToast(resJSON.data.message);
                 setErrorList([]);
                 setErrors({});
-                const hasApiKey = settings.api_key && settings.api_key.trim() !== "";
-                setSettingsSaved(hasApiKey);
                 getSettings();
             } else {
                 setErrors(resJSON.data);
@@ -255,40 +263,16 @@ const Settings = () => {
         });
     }
 
-    const handleTestConnection = async () => {
-        setTestLoading(true);
-        let params = {
-            wlmi_nonce: appState.settings_nonce,
-            action: "wlmi_test_connection",
-            api_key: settings.api_key
-        };
-
-        try {
-            let json = await postRequest(params);
-            let resJSON = getJSONData(json.data);
-            if (resJSON.success === true) {
-                alertifyToast(resJSON.data.message);
-                setIsConnected(true);
-                // Don't fetch lists here - only fetch after settings are saved
-                // The list selector will only be visible after settings are saved
-            } else {
-                alertifyToast(resJSON.data.message, false);
-                setIsConnected(false);
-            }
-        } catch (e) {
-            setIsConnected(false);
-        }
-        setTestLoading(false);
-    }
-
     const isLicenseActive = licenseStatus === "active";
+    const listTransition = savedListId !== settings.list_id && '' !== settings.list_id;
+    const saveDisabled = disableSave || !isConnected || !settings.list_id || (listTransition && !settings.migration_choice);
 
     return (
         <div className="w-full flex flex-col gap-y-2 items-start h-full">
             <TitleActionContainer 
                 title={labels.settings?.title || "Mailchimp Settings"} 
                 saveAction={() => saveSettings()}
-                saveDisabled={disableSave}
+                saveDisabled={saveDisabled}
             />
 
             <div className="flex gap-x-6 items-stretch w-full min-h-[590px]">
@@ -320,297 +304,49 @@ const Settings = () => {
                                     </p>
 
                                     <div className="flex flex-col w-74_% 2xl:w-7/12 mt-3 xl:mt-4 2xl:mt-5">
-                                        <div className="flex items-center w-full gap-x-5">
-                                            <div className="flex-1">
-                                                <Input
-                                                    id="api_key"
-                                                    type="text"
-                                                    value={settings.api_key || ""}
-                                                    placeHolder={labels.settings?.placeholder || "Enter your Mailchimp API Key"}
-                                                    border={`border-2 border-opacity-100 ${isConnected ? 'border-green-500' : 'border-red-600'}`}
-                                                    textColor={isConnected ? 'text-green-600' : 'text-red-600'}
-                                                    height="h-12"
-                                                    onChange={(e) => {
-                                                        setSettings({
-                                                            ...settings,
-                                                            api_key: e.target.value
-                                                        });
-                                                    }}
-                                                    error={errorList.includes("api_key")}
-                                                />
-                                            </div>
+                                        <ConnectionSettings
+                                            settings={settings}
+                                            setSettings={setSettings}
+                                            isConnected={isConnected}
+                                            setIsConnected={setIsConnected}
+                                            connectionLoading={connectionLoading}
+                                            setConnectionLoading={setConnectionLoading}
+                                            errorList={errorList}
+                                            appState={appState}
+                                            fetchLists={fetchLists}
+                                            setSavedListId={setSavedListId}
+                                            setSelectedList={setSelectedList}
+                                            setLists={setLists}
+                                            setMigrationStatus={setMigrationStatus}
+                                            setErrorList={setErrorList}
+                                            setErrors={setErrors}
+                                        />
 
-                                            <div className="flex items-center">
-                                                <Button
-                                                    id="test_connection"
-                                                    icon={
-                                                        <i className="text-md text-white leading-0 antialiased wlr wlrf-save color-important" />
-                                                    }
-                                                    textStyle="text-white font-medium text-sm_14_l_20"
-                                                    bgColor="bg-green-600"
-                                                    others="tracking-wide h-12 flex items-center"
-                                                    padding="px-5 py-3"
-                                                    disabled={testLoading}
-                                                    click={(e) => {
-                                                        e.preventDefault();
-                                                        handleTestConnection();
-                                                    }}
-                                                >
-                                                    {labels.settings?.test_connection || "Test Connection"}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-1 mt-2">
-                                            <span className="text-sm text-gray-600">
-                                                {labels.settings?.status || "Status"}:
-                                            </span>
-                                            <span className={`text-sm font-medium ${isConnected ? "text-green-600" : "text-red-600"}`}>
-                                                {isConnected
-                                                    ? (labels.settings?.active || "Active")
-                                                    : (labels.settings?.inactive || "Inactive")}
-                                            </span>
-                                        </div>
+                                        <ListSettings
+                                            isConnected={isConnected}
+                                            settings={settings}
+                                            setSettings={setSettings}
+                                            selectedList={selectedList}
+                                            setSelectedList={setSelectedList}
+                                            handleSearch={handleSearch}
+                                            lists={lists}
+                                            nextOffset={nextOffset}
+                                            totalLists={totalLists}
+                                            listsLoading={listsLoading}
+                                            isAutoFetching={isAutoFetching}
+                                            errorList={errorList}
+                                            setErrorList={setErrorList}
+                                            listTransition={listTransition}
+                                        />
 
-                                        {/* List Selection */}
-                                        {isConnected && settingsSaved && (
-                                            <div className="flex flex-col w-full mt-5">
-                                                <label className="text-dark font-medium text-sm mb-2">
-                                                    {labels.settings?.list_label || "Select Mailchimp List"}
-                                                </label>
-                                                <ListSelect
-                                                    id="mailchimp_list"
-                                                    value={selectedList}
-                                                    onChange={(selected) => {
-                                                        setSelectedList(selected);
-                                                        setSettings({
-                                                            ...settings,
-                                                            list_id: selected ? selected.value : ""
-                                                        });
-                                                    }}
-                                                    onSearch={handleSearch}
-                                                    options={lists}
-                                                    hasMore={nextOffset < totalLists}
-                                                    loading={listsLoading || isAutoFetching}
-                                                    error={errorList.includes("list_id")}
-                                                    placeholder={labels.settings?.list_placeholder || "Search or select a list"}
-                                                    searchPlaceholder={labels.settings?.search_placeholder || "Type to search lists..."}
-                                                    loadingMessage={isAutoFetching
-                                                        ? (labels.settings?.searching_message || "Searching through lists...")
-                                                        : (labels.settings?.loading_message || "Loading...")}
-                                                    noOptionsMessage={labels.settings?.no_results_message || "No lists found"}
-                                                    scrollForMoreMessage={labels.settings?.scroll_for_more_message || "Scroll for more..."}
-                                                />
-                                                <p className="text-xs text-light mt-1">
-                                                    {labels.settings?.list_description || "Choose the Mailchimp list where customers will be added"}
-                                                </p>
-                                                {isAutoFetching && (
-                                                    <p className="text-xs text-primary mt-1 font-medium">
-                                                        🔍 {(labels.settings?.searching_progress_message || "Searching through %s lists...").replace('%s', totalLists)}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Migration Choice Dropdown */}
-                                        {isConnected && settingsSaved && settings.wlmi_request_migration_from_admin && settings.list_id && (
-                                            <div className="flex flex-col w-full mt-5">
-                                                <label className="text-dark font-medium text-sm mb-2">
-                                                    {labels.settings?.migration_label || "Migration Choice"}
-                                                </label>
-                                                <DropdownWrapper
-                                                    options={labels.settings?.migration_options || []}
-                                                    value={settings.migration_choice || ''}
-                                                    handleDropDownClick={(item) => {
-                                                        setSettings({
-                                                            ...settings,
-                                                            migration_choice: item.value
-                                                        });
-                                                    }}
-                                                    label={settings.migration_choice 
-                                                        ? getChosenLabel(labels.settings?.migration_options || [], settings.migration_choice) || labels.settings?.migration_placeholder
-                                                        : (labels.settings?.migration_placeholder || "Select migration choice")}
-                                                    width="w-full"
-                                                />
-                                                <p className="text-xs text-light mt-1">
-                                                    {labels.settings?.migration_description || "Choose your migration option"}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {/* Migration Status Card */}
-                                        {isConnected && settingsSaved && settings.list_id && migrationStatus && migrationStatus.state !== 'no_list' && (
-                                            <div className="flex flex-col w-full mt-6 border border-card_border rounded-xl bg-gray-50 p-5">
-                                                {/* Header Row */}
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div>
-                                                        <h5 className="text-dark font-semibold text-base">
-                                                            {labels.settings?.migration_status_title || "Migration Status"}
-                                                        </h5>
-                                                        <p className="text-xs text-light mt-1">
-                                                            {labels.settings?.migration_status_subtitle || "Sync progress for the selected Mailchimp list"}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {/* Status Pill */}
-                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                                                            migrationStatus.state === 'no_runs' 
-                                                                ? 'bg-gray-100 text-gray-700'
-                                                                : migrationStatus.state === 'in_progress'
-                                                                    ? 'bg-yellow-100 text-yellow-700'
-                                                                    : migrationStatus.errored_operations > 0
-                                                                        ? 'bg-red-100 text-red-700'
-                                                                        : 'bg-green-100 text-green-700'
-                                                        }`}>
-                                                            {migrationStatus.state === 'no_runs' 
-                                                                ? (labels.settings?.migration_state_no_runs || "No runs yet")
-                                                                : migrationStatus.state === 'in_progress'
-                                                                    ? (labels.settings?.migration_state_in_progress || "In progress")
-                                                                    : migrationStatus.errored_operations > 0
-                                                                        ? (labels.settings?.migration_state_completed_errors || "Completed with errors")
-                                                                        : (labels.settings?.migration_state_completed || "Completed")}
-                                                        </span>
-                                                        {/* Refresh Button */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => fetchMigrationStatus()}
-                                                            disabled={migrationStatusLoading}
-                                                            className={`p-1.5 rounded-md hover:bg-gray-200 transition-colors ${migrationStatusLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                                                            title={labels.settings?.migration_refresh_status || "Refresh status"}
-                                                        >
-                                                            <i className={`wlr wlrf-refresh text-sm text-gray-600 ${migrationStatusLoading ? 'animate-spin' : ''}`} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {migrationStatusLoading && !migrationStatus.batch_count ? (
-                                                    <div className="flex flex-col gap-y-3">
-                                                        <ShimmerLoading height="h-4" width="w-full" />
-                                                        <ShimmerLoading height="h-4" width="w-3/4" />
-                                                    </div>
-                                                ) : migrationStatus.state === 'no_runs' ? (
-                                                    <p className="text-sm text-gray-500">
-                                                        {labels.settings?.migration_no_runs_message || "No migrations have run for this list yet. Migrations will appear here once started."}
-                                                    </p>
-                                                ) : (
-                                                    <React.Fragment>
-                                                        {/* Metrics Row */}
-                                                        <div className="grid grid-cols-4 gap-4 mb-4">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-xs text-gray-500 mb-1">
-                                                                    {labels.settings?.migration_total_ops || "Total Operations"}
-                                                                </span>
-                                                                <span className="text-lg font-semibold text-dark">
-                                                                    {migrationStatus.total_operations.toLocaleString()}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-xs text-gray-500 mb-1">
-                                                                    {labels.settings?.migration_success || "Success"}
-                                                                </span>
-                                                                <span className="text-lg font-semibold text-green-600">
-                                                                    {migrationStatus.success_operations.toLocaleString()}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-xs text-gray-500 mb-1">
-                                                                    {labels.settings?.migration_failures || "Failures"}
-                                                                </span>
-                                                                <span className={`text-lg font-semibold ${migrationStatus.errored_operations > 0 ? 'text-red-600' : 'text-dark'}`}>
-                                                                    {migrationStatus.errored_operations.toLocaleString()}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-xs text-gray-500 mb-1">
-                                                                    {labels.settings?.migration_batches || "Batches"}
-                                                                </span>
-                                                                <span className="text-lg font-semibold text-dark">
-                                                                    {migrationStatus.batch_count}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Error Info */}
-                                                        {migrationStatus.errored_operations > 0 ? (
-                                                            <div className="flex flex-col gap-2">
-                                                                <div className="flex items-center gap-2 text-sm">
-                                                                    <span className="text-red-600">
-                                                                        {migrationStatus.errored_operations.toLocaleString()} {labels.settings?.migration_failed_ops || "failed operations detected."}
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* CSV Processing Status */}
-                                                                {migrationStatus.csv_processing_status === 'processing' && (
-                                                                    <div className="flex items-center gap-2 text-sm">
-                                                                        <div className="flex items-center gap-2 text-yellow-600">
-                                                                            <i className="wlr wlrf-refresh animate-spin text-sm" />
-                                                                            <span>{labels.settings?.csv_processing_message || "Processing failed users CSV..."}</span>
-                                                                        </div>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => fetchMigrationStatus()}
-                                                                            disabled={migrationStatusLoading}
-                                                                            className="px-3 py-1 text-xs bg-primary text-white rounded hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                                        >
-                                                                            {labels.settings?.check_csv_status || "Check Status"}
-                                                                        </button>
-                                                                    </div>
-                                                                )}
-
-                                                                {/* CSV Ready for Download */}
-                                                                {migrationStatus.csv_processing_status === 'completed' && migrationStatus.failed_users_csv_path && (
-                                                                    <div className="flex items-center gap-2 text-sm">
-                                                                        <span className="text-green-600">
-                                                                            {labels.settings?.csv_ready_message || "CSV file ready for download."}
-                                                                        </span>
-                                                                        <a 
-                                                                            href={`${typeof wlmi_settings_form !== 'undefined' ? wlmi_settings_form.ajax_url : appState.ajax_url || ''}?action=wlmi_download_failed_users_csv&wlmi_nonce=${appState.settings_nonce}`}
-                                                                            className="text-primary hover:underline"
-                                                                        >
-                                                                            {labels.settings?.migration_download_csv || "Download failed users CSV"}
-                                                                        </a>
-                                                                    </div>
-                                                                )}
-
-                                                                {/* CSV Processing Failed */}
-                                                                {migrationStatus.csv_processing_status === 'failed' && (
-                                                                    <div className="flex items-center gap-2 text-sm text-red-600">
-                                                                        <span>{labels.settings?.csv_processing_failed || "CSV processing failed. Please try again."}</span>
-                                                                    </div>
-                                                                )}
-
-                                                                {/* Fallback to raw error file if CSV not processing/completed and no CSV path */}
-                                                                {migrationStatus.csv_processing_status !== 'processing' && 
-                                                                 migrationStatus.csv_processing_status !== 'completed' && 
-                                                                 !migrationStatus.failed_users_csv_path && 
-                                                                 migrationStatus.first_error_file_url && (
-                                                                    <div className="flex items-center gap-2 text-sm">
-                                                                        <a 
-                                                                            href={migrationStatus.first_error_file_url}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="text-primary hover:underline"
-                                                                        >
-                                                                            {labels.settings?.migration_download_error_file || "Download error file"}
-                                                                        </a>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ) : migrationStatus.state === 'completed' && (
-                                                            <p className="text-sm text-gray-500">
-                                                                {labels.settings?.migration_no_errors || "No migration errors detected."}
-                                                            </p>
-                                                        )}
-
-                                                        {/* Last checked timestamp */}
-                                                        {migrationStatus.last_checked_at && (
-                                                            <p className="text-xs text-gray-400 mt-3">
-                                                                {labels.settings?.migration_last_checked || "Last checked:"} {migrationStatus.last_checked_at}
-                                                            </p>
-                                                        )}
-                                                    </React.Fragment>
-                                                )}
-                                            </div>
-                                        )}
+                                        <MigrationStatus
+                                            isConnected={isConnected}
+                                            settings={settings}
+                                            migrationStatus={migrationStatus}
+                                            migrationStatusLoading={migrationStatusLoading}
+                                            fetchMigrationStatus={fetchMigrationStatus}
+                                            appState={appState}
+                                        />
                                     </div>
                                 </React.Fragment>
                             ) : (

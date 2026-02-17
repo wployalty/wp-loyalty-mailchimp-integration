@@ -32,7 +32,6 @@ class Settings {
 			'api_key' => '',
 			'server'  => '',
 			'list_id' => '',
-			'wlmi_request_migration_from_admin' => false,
 			'migration_choice' => ''
 		];
 	}

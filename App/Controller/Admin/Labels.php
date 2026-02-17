@@ -141,10 +141,13 @@ class Labels {
 			'status'                     => __( 'Status', 'wp-loyalty-mailchimp-integration' ),
 			'active'                     => __( 'Active', 'wp-loyalty-mailchimp-integration' ),
 			'inactive'                   => __( 'Inactive', 'wp-loyalty-mailchimp-integration' ),
-			'test_connection'            => __( 'Test Connection', 'wp-loyalty-mailchimp-integration' ),
+			'connect'                    => __( 'Connect', 'wp-loyalty-mailchimp-integration' ),
+			'disconnect'                 => __( 'Disconnect', 'wp-loyalty-mailchimp-integration' ),
 			'list_label'                 => __( 'Select Mailchimp List', 'wp-loyalty-mailchimp-integration' ),
 			'list_placeholder'           => __( 'Search or select a list', 'wp-loyalty-mailchimp-integration' ),
 			'list_description'           => __( 'Choose the Mailchimp list where customers will be added', 'wp-loyalty-mailchimp-integration' ),
+			'connect_required'           => __( 'Connect Mailchimp before saving.', 'wp-loyalty-mailchimp-integration' ),
+			'list_required'              => __( 'Please select a Mailchimp list.', 'wp-loyalty-mailchimp-integration' ),
 			// Search-related labels
 			'search_placeholder'         => __( 'Type to search lists...', 'wp-loyalty-mailchimp-integration' ),
 			'loading_message'            => __( 'Loading...', 'wp-loyalty-mailchimp-integration' ),
@@ -156,6 +159,7 @@ class Labels {
 			'migration_label'            => __( 'Migration existing users?', 'wp-loyalty-mailchimp-integration' ),
 			'migration_placeholder'      => __( 'Select migration choice', 'wp-loyalty-mailchimp-integration' ),
 			'migration_description'      => __( 'Choose your migration option, by default users added when their point updated', 'wp-loyalty-mailchimp-integration' ),
+			'migration_choice_required'  => __( 'Please choose whether to migrate existing users.', 'wp-loyalty-mailchimp-integration' ),
 			'migration_options'          => [
 				[ 'label' => __( 'Yes', 'wp-loyalty-mailchimp-integration' ), 'value' => 'yes' ],
 				[ 'label' => __( 'No', 'wp-loyalty-mailchimp-integration' ), 'value' => 'no' ],

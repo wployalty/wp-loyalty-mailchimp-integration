@@ -32,7 +32,8 @@ class Router {
 			add_action( 'wp_ajax_wlmi_admin_settings', [ Settings::class, 'getSettings' ] );
 			//save settings
 			add_action( 'wp_ajax_wlmi_save_settings', [ Settings::class, 'saveSettings' ] );
-			add_action( 'wp_ajax_wlmi_test_connection', [ Api::class, 'testConnection' ] );
+			add_action( 'wp_ajax_wlmi_connect_mailchimp', [ Api::class, 'connectMailchimp' ] );
+			add_action( 'wp_ajax_wlmi_disconnect_mailchimp', [ Api::class, 'disconnectMailchimp' ] );
 			add_action( 'wp_ajax_wlmi_get_lists', [ Api::class, 'getLists' ] );
 			add_action( 'wp_ajax_wlmi_get_migration_status', [ Api::class, 'getMigrationStatus' ] );
 			add_action( 'wp_ajax_wlmi_download_failed_users_csv', [ Api::class, 'downloadFailedUsersCSV' ] );
