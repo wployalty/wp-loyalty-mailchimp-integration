@@ -13,26 +13,57 @@ defined( 'ABSPATH' ) or die;
 
 class Api {
 	/**
-	 * Test connection.
+	 * Connect and persist Mailchimp API settings.
 	 *
 	 * @return void
 	 */
-	public static function testConnection() {
+	public static function connectMailchimp() {
 		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
-		$api_key = Input::get( 'api_key' );
+		$api_key = trim( (string) Input::get( 'api_key' ) );
 		if ( empty( $api_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'API Key is required', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
 
-		$is_connected = MailchimpHelper::checkConnection( $api_key );
+		$dash_pos = strpos( $api_key, '-' );
+		if ( $dash_pos === false || $dash_pos === strlen( $api_key ) - 1 ) {
+			wp_send_json_error( [ 'message' => __( 'Invalid API key format', 'wp-loyalty-mailchimp-integration' ) ] );
+		}
+		$server = substr( $api_key, $dash_pos + 1 );
 
-		if ( $is_connected ) {
-			wp_send_json_success( [ 'message' => __( 'Connected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
-		} else {
+		$is_connected = MailchimpHelper::checkConnection( $api_key, $server );
+
+		if ( ! $is_connected ) {
 			wp_send_json_error( [ 'message' => __( 'Connection failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
+
+		$settings            = SettingsHelper::gets();
+		$settings['api_key'] = $api_key;
+		$settings['server']  = $server;
+		update_option( 'wlmi_settings', $settings );
+
+		wp_send_json_success( [ 'message' => __( 'Connected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
+	}
+
+	/**
+	 * Disconnect Mailchimp and clear integration settings.
+	 *
+	 * @return void
+	 */
+	public static function disconnectMailchimp() {
+		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
+			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
+		}
+
+		$settings                                = SettingsHelper::gets();
+		$settings['api_key']                     = '';
+		$settings['server']                      = '';
+		$settings['list_id']                     = '';
+		$settings['migration_choice']            = '';
+		update_option( 'wlmi_settings', $settings );
+
+		wp_send_json_success( [ 'message' => __( 'Disconnected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
 	}
 
 	/**

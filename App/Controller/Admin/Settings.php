@@ -74,19 +74,29 @@ class Settings {
 
 		$list_id           = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
 		$old_list_id       = isset( $existing_settings['list_id'] ) ? (string) $existing_settings['list_id'] : '';
-		$list_changed      = ! empty( $list_id ) && $list_id !== $old_list_id;
-		$list_saved_first_time = ! empty( $list_id ) && empty( $old_list_id );
+		$list_transition = ! empty( $list_id ) && $list_id !== $old_list_id;
 
-		$should_trigger_migration = $list_saved_first_time || $list_changed;
-		if ( $should_trigger_migration ) {
+		$migration_choice = isset( $settings['migration_choice'] ) ? (string) $settings['migration_choice'] : '';
+		if ( $list_transition && ! in_array( $migration_choice, [ 'yes', 'no' ], true ) ) {
+			wp_send_json_error( [
+				'message'     => __( 'Settings not saved!', 'wp-loyalty-mailchimp-integration' ),
+				'field_error' => [
+					'settings.migration_choice' => [ __( 'This field is required', 'wp-loyalty-mailchimp-integration' ) ],
+				],
+			] );
+		}
+
+		if ( $list_transition ) {
 			$merge_fields_ready = MailchimpHelper::ensureMergeFields( $list_id, $settings );
 			if ( ! $merge_fields_ready ) {
 				wp_send_json_error( [ 'message' => __( 'Unable to setup Mailchimp merge fields for the selected list.', 'wp-loyalty-mailchimp-integration' ) ] );
 			}
 		}
-		$settings['wlmi_request_migration_from_admin'] = $should_trigger_migration;
+		if ( empty( $list_id ) ) {
+			$settings['migration_choice'] = '';
+		}
 		update_option( 'wlmi_settings', $settings );
-		if ( $should_trigger_migration ) {
+		if ( $list_transition ) {
 			MigrationBatch::scheduleBatches( $settings );
 		}
 
