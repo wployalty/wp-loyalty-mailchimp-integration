@@ -5,9 +5,9 @@ import { CommonContext, UiLabelContext } from "../Context";
 import { postRequest } from "../components/Common/postRequest";
 import { alertifyToast, errorDisplayer, getJSONData } from "../helpers/utilities";
 import EmptyPage from "../components/Common/EmptyPage";
-import ConnectionSettings from "./ConnectionSettings";
-import ListSettings from "./ListSettings";
-import MigrationStatus from "./MigrationStatus";
+import ConnectionSettings from "../components/Settings/ConnectionSettings";
+import ListSettings from "../components/Settings/ListSettings";
+import MigrationStatus from "../components/Settings/MigrationStatus";
 
 const Settings = () => {
     const {appState} = React.useContext(CommonContext);

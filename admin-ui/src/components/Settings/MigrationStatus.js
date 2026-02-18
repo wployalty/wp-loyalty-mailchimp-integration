@@ -1,6 +1,6 @@
 import React from 'react';
-import ShimmerLoading from "../components/Common/ShimmerLoading";
-import { UiLabelContext } from "../Context";
+import ShimmerLoading from "../Common/ShimmerLoading";
+import { UiLabelContext } from "../../Context";
 
 const MigrationStatus = ({ isConnected, settings, migrationStatus, migrationStatusLoading, fetchMigrationStatus, appState }) => {
     const labels = React.useContext(UiLabelContext);

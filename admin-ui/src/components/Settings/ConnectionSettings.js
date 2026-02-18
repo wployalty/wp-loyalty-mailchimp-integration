@@ -1,9 +1,9 @@
 import React from 'react';
-import { UiLabelContext } from "../Context";
-import Input from "../components/Common/Input";
-import Button from "../components/Common/Button";
-import { postRequest } from "../components/Common/postRequest";
-import { getJSONData, alertifyToast } from "../helpers/utilities";
+import { UiLabelContext } from "../../Context";
+import Input from "../Common/Input";
+import Button from "../Common/Button";
+import { postRequest } from "../Common/postRequest";
+import { getJSONData, alertifyToast } from "../../helpers/utilities";
 
 const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected, connectionLoading, setConnectionLoading, errorList, appState, fetchLists, setSavedListId, setSelectedList, setLists, setMigrationStatus, setErrorList, setErrors }) => {
     const labels = React.useContext(UiLabelContext);
