@@ -516,13 +516,10 @@ class MigrationBatch {
 			}
 		}
 
-		// Use CSV path if available, otherwise fallback to Mailchimp URL
-		$error_file_url = null;
-		if ( ! empty( $csv_path ) ) {
-			// Return relative path for frontend to use download endpoint
-			$error_file_url = $csv_path;
-		} elseif ( ! empty( $first_error_url ) ) {
-			$error_file_url = $first_error_url;
+		// Only expose error links when migration is fully completed.
+		// This prevents premature display of raw error files while batches are still running.
+		if ( $state !== 'completed' ) {
+			$first_error_url = null;
 		}
 
 		$last_checked_at = Util::getCurrentTimeFormatted();
