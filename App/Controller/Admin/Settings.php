@@ -52,25 +52,16 @@ class Settings {
 			$existing_settings = [];
 		}
 
-		// Merge incoming settings on top of existing.
+		// Merge incoming settings on top of existing, but PRESERVE the verified API key and server.
+		// These should only be managed via connectMailchimp/disconnectMailchimp.
+		$api_key = isset($existing_settings['api_key']) ? (string)$existing_settings['api_key'] : '';
+		$server = isset($existing_settings['server']) ? (string)$existing_settings['server'] : '';
+		
 		$settings = array_merge( $existing_settings, $settings );
+		$settings['api_key'] = $api_key;
+		$settings['server'] = $server;
 
 		$validate_data = Validation::validateSettingsTab( [ 'settings' => $settings ] );
-		if ( is_array( $validate_data ) ) {
-			foreach ( $validate_data as $key => $validate ) {
-				$validate_data[ $key ] = [ current( $validate ) ];
-			}
-			wp_send_json_error( [
-				'message'     => __( 'Settings not saved!', 'wp-loyalty-mailchimp-integration' ),
-				'field_error' => $validate_data
-			] );
-		}
-
-		if ( ! empty( $settings['api_key'] ) && strpos( $settings['api_key'], '-' ) !== false ) {
-			$settings['server'] = substr( $settings['api_key'], strpos( $settings['api_key'], '-' ) + 1 );
-		} else {
-			$settings['server'] = '';
-		}
 
 		$list_id           = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
 		$old_list_id       = isset( $existing_settings['list_id'] ) ? (string) $existing_settings['list_id'] : '';

@@ -5,7 +5,7 @@ import Button from "../Common/Button";
 import { postRequest } from "../Common/postRequest";
 import { getJSONData, alertifyToast } from "../../helpers/utilities";
 
-const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected, connectionLoading, setConnectionLoading, errorList, appState, fetchLists, setSavedListId, setSelectedList, setLists, setMigrationStatus, setErrorList, setErrors }) => {
+const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected, connectionLoading, setConnectionLoading, errorList, appState, fetchLists, setSavedListId, setSelectedList, setLists, setMigrationStatus, setErrorList, setErrors, getSettings }) => {
     const labels = React.useContext(UiLabelContext);
 
     const handleConnect = async () => {
@@ -22,7 +22,8 @@ const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected
             if (resJSON.success === true) {
                 alertifyToast(resJSON.data.message);
                 setIsConnected(true);
-                fetchLists('', 0, true, false, settings.list_id || null);
+                // Re-fetch all settings to ensure everything is in sync
+                getSettings();
             } else {
                 alertifyToast(resJSON.data.message, false);
                 setIsConnected(false);
@@ -82,14 +83,7 @@ const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected
                             setSettings({
                                 ...settings,
                                 api_key: e.target.value,
-                                list_id: "",
-                                migration_choice: ""
                             });
-                            setIsConnected(false);
-                            setSavedListId("");
-                            setSelectedList(null);
-                            setLists([]);
-                            setMigrationStatus(null);
                         }}
                         error={errorList.includes("api_key")}
                     />
