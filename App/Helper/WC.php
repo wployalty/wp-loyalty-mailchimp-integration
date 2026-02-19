@@ -80,6 +80,17 @@ class WC {
 	}
 
 	/**
+	 * Wrapper for set_time_limit to see if it is enabled.
+	 *
+	 * @param int $limit Time limit.
+	 */
+	public static function setTimeLimit( $limit = 0 ) {
+		if ( function_exists( 'set_time_limit' ) && false === strpos( (string) ini_get( 'disable_functions' ), 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) { // phpcs:ignore PHPCompatibility.IniDirectives.RemovedIniDirectives.safe_modeDeprecatedRemoved
+			@set_time_limit( $limit ); // @codingStandardsIgnoreLine
+		}
+	}
+
+	/**
 	 * Get WordPress Timezone.
 	 *
 	 * This method retrieves the WordPress timezone string based on the available options.
@@ -95,14 +106,15 @@ class WC {
 			if ( $timezone_string ) {
 				return $timezone_string;
 			}
-			$offset   = (float) get_option( 'gmt_offset' );
-			$hours    = (int) $offset;
-			$minutes  = ( $offset - $hours );
-			$sign     = ( $offset < 0 ) ? '-' : '+';
-			$abs_hour = abs( $hours );
-			$abs_mins = abs( $minutes * 60 );
+			$offset    = (float) get_option( 'gmt_offset' );
+			$hours     = (int) $offset;
+			$minutes   = ( $offset - $hours );
+			$sign      = ( $offset < 0 ) ? '-' : '+';
+			$abs_hour  = abs( $hours );
+			$abs_mins  = abs( $minutes * 60 );
+			$tz_offset = sprintf( '%s%02d:%02d', $sign, $abs_hour, $abs_mins );
 
-			return sprintf( '%s%02d:%02d', $sign, $abs_hour, $abs_mins );
+			return $tz_offset;
 		}
 
 		return wp_timezone_string();
