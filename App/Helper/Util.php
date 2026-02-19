@@ -51,42 +51,18 @@ class Util {
 		if ( (int) $date != $date ) {
 			return $date;
 		}
-		//return $this->convert_utc_to_wp_time(date('Y-m-d H:i:s', $date), $format);
-		$converted_time = Util::convertUTCtoWP( date( 'Y-m-d H:i:s', $date ), $format );
-		if ( apply_filters( 'wlr_translate_display_date', false ) ) {
-			$time           = strtotime( $converted_time );
+		$converted_time = self::convertUTCtoWP( gmdate( 'Y-m-d H:i:s', $date ), $format );
+		if ( apply_filters( 'wlmi_translate_display_date', true ) ) {
+			$datetime = \DateTime::createFromFormat( $format, $converted_time );
+			if ( $datetime !== false ) {
+				$time = $datetime->getTimestamp();
+			} else {
+				$time = strtotime( $converted_time );
+			}
 			$converted_time = date_i18n( $format, $time );
 		}
 
 		return $converted_time;
-	}
-
-	/**
-	 * Convert WordPress timezone to UTC.
-	 *
-	 * @param string $datetime The WordPress timezone date/time string to convert.
-	 * @param string $format The format to return the date/time in. Default is 'Y-m-d H:i:s'.
-	 * @param string $modify Optional. A date interval specification to modify the date/time. Default is ''.
-	 *
-	 * @return string|null The converted date/time string in UTC or null if input is empty.
-	 */
-	public static function convertWPtoUTC( $datetime, $format = 'Y-m-d H:i:s', $modify = '' ) {
-		if ( empty( $datetime ) ) {
-			return null;
-		}
-		try {
-			$wp_time_zone = new \DateTimeZone( WC::getWPZone() );
-			$current_time = new \DateTime( $datetime, $wp_time_zone );
-			if ( ! empty( $modify ) ) {
-				$current_time->modify( $modify );
-			}
-			$timezone = new \DateTimeZone( 'UTC' );
-			$current_time->setTimezone( $timezone );
-
-			return $current_time->format( $format );
-		} catch ( \Exception $e ) {
-			return $datetime;
-		}
 	}
 
 	/**
@@ -111,7 +87,6 @@ class Util {
 		} catch ( \Exception $e ) {
 			$converted_time = $datetime;
 		}
-
 		return $converted_time;
 	}
 
@@ -181,7 +156,7 @@ class Util {
 		}
 		$date             = new \DateTime( $date );
 		$converted_format = $date->format( $format );
-		if ( apply_filters( 'wlr_translate_display_date', false ) ) {
+		if ( apply_filters( 'wlmi_translate_display_date', false ) ) {
 			$time             = strtotime( $converted_format );
 			$converted_format = date_i18n( $format, $time );
 		}

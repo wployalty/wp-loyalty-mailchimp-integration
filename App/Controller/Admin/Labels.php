@@ -2,8 +2,6 @@
 
 namespace WLMI\App\Controller\Admin;
 
-use WLMI\App\Helper\Loyalty;
-
 use WLMI\App\Helper\Util;
 use WLMI\App\Helper\WC;
 
@@ -19,11 +17,9 @@ class Labels {
 		if ( ! WC::isSecurityValid( 'local_data' ) ) {
 			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
-		$is_pro          = Loyalty::isPro();
 		$short_codes     = [];
 
 		$localize = [
-			'is_pro'                  => $is_pro,
 			'common'                  => [
 				'back_to_apps_url' => admin_url( 'admin.php?' . http_build_query( [ 'page' => WLR_PLUGIN_SLUG ] ) ) . '#/apps',
 			],
@@ -153,7 +149,8 @@ class Labels {
 			'loading_message'            => __( 'Loading...', 'wp-loyalty-mailchimp-integration' ),
 			'searching_message'          => __( 'Searching through lists...', 'wp-loyalty-mailchimp-integration' ),
 			'no_results_message'         => __( 'No lists found', 'wp-loyalty-mailchimp-integration' ),
-			'searching_progress_message' => __( 'Searching through %s lists...', 'wp-loyalty-mailchimp-integration' ), // %s will be replaced with total count
+			// translators: %s will be replaced with total count
+			'searching_progress_message' => __( 'Searching through %s lists...', 'wp-loyalty-mailchimp-integration' ),
 			'scroll_for_more_message'    => __( 'Scroll for more...', 'wp-loyalty-mailchimp-integration' ),
 			// Migration choice labels
 			'migration_label'            => __( 'Migration existing users?', 'wp-loyalty-mailchimp-integration' ),
@@ -172,11 +169,11 @@ class Labels {
 			'migration_state_completed_errors' => __( 'Completed with errors', 'wp-loyalty-mailchimp-integration' ),
 			'migration_state_completed'  => __( 'Completed', 'wp-loyalty-mailchimp-integration' ),
 			'migration_refresh_status'   => __( 'Refresh status', 'wp-loyalty-mailchimp-integration' ),
-			'migration_total_ops'        => __( 'Total Operations', 'wp-loyalty-mailchimp-integration' ),
+			'migration_total_ops'        => __( 'Total members', 'wp-loyalty-mailchimp-integration' ),
 			'migration_success'          => __( 'Success', 'wp-loyalty-mailchimp-integration' ),
 			'migration_failures'         => __( 'Failures', 'wp-loyalty-mailchimp-integration' ),
 			'migration_batches'          => __( 'Batches', 'wp-loyalty-mailchimp-integration' ),
-			'migration_failed_ops'       => __( 'failed operations detected.', 'wp-loyalty-mailchimp-integration' ),
+			'migration_failed_ops'       => __( 'failed migration detected.', 'wp-loyalty-mailchimp-integration' ),
 			'csv_processing_message'     => __( 'Processing failed users CSV...', 'wp-loyalty-mailchimp-integration' ),
 			'check_csv_status'           => __( 'Check Status', 'wp-loyalty-mailchimp-integration' ),
 			'csv_ready_message'          => __( 'CSV file ready for download.', 'wp-loyalty-mailchimp-integration' ),

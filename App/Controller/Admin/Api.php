@@ -7,6 +7,7 @@ use WLMI\App\Helper\Input;
 use WLMI\App\Helper\Util;
 use WLMI\App\Helper\WC;
 use WLMI\App\Helper\Settings as SettingsHelper;
+use WLMI\App\Helper\File as FileHelper;
 use WLMI\App\Controller\MigrationBatch;
 
 defined( 'ABSPATH' ) or die;
@@ -97,7 +98,7 @@ class Api {
 
 			//fetch multiple batches if searching and no matches found
 			while ( $batches_fetched < $max_batches ) {
-				set_time_limit( 30 );
+				WC::setTimeLimit( 30 );
 
 				$response = MailchimpHelper::getListBatch( $settings, $batch_size, $current_offset );
 				if ( empty( $response ) ) {
@@ -240,7 +241,7 @@ class Api {
 		}
 
 		// Check file exists and is readable
-		if ( ! file_exists( $csv_path ) || ! is_readable( $csv_path ) ) {
+		if ( ! FileHelper::exists( $csv_path ) || ! FileHelper::isReadable( $csv_path ) ) {
 			wp_die( esc_html__( 'CSV file not found or not readable', 'wp-loyalty-mailchimp-integration' ) );
 		}
 
@@ -252,7 +253,11 @@ class Api {
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-		readfile( $csv_path );
+		$content = FileHelper::getContent( $csv_path );
+		if ( $content !== false ) {
+			//phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo $content;
+		}
 		exit;
 	}
 

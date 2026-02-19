@@ -3,7 +3,6 @@
 namespace WLMI\App\Controller;
 
 use WLMI\App\Helper\Input;
-use WLMI\App\Helper\Loyalty;
 use WLMI\App\Helper\Util;
 use WLMI\App\Helper\WC;
 
@@ -82,6 +81,7 @@ class Common {
 
 		wp_enqueue_style( WLMI_PLUGIN_SLUG . '-wlr-font', WLR_PLUGIN_URL . 'Assets/Site/Css/wlr-fonts' . $suffix . '.css', [], WLR_PLUGIN_VERSION . $add_cache_fix );
 		wp_enqueue_style( WLR_PLUGIN_SLUG . '-alertify', WLR_PLUGIN_URL . 'Assets/Admin/Css/alertify.css', [], WLR_PLUGIN_VERSION . $add_cache_fix );
+        // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 		wp_enqueue_script( WLR_PLUGIN_SLUG . '-alertify', WLR_PLUGIN_URL . 'Assets/Admin/Js/alertify.js', [ 'jquery' ], WLR_PLUGIN_VERSION . $add_cache_fix );
 		$common_path   = WLMI_PLUGIN_DIR . '/assets/admin/js/dist';
 		$js_files      = Util::getDirFileLists( $common_path );
@@ -93,6 +93,7 @@ class Common {
 			$js_file_url  = WLMI_PLUGIN_URL . $path;
 			if ( $js_file_name == 'main.bundle.js' ) {
 				$localize_name = $js_name;
+                // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 				wp_register_script( $js_name, $js_file_url, [ 'jquery' ], WLMI_PLUGIN_VERSION . $add_cache_fix );
 				wp_enqueue_script( $js_name );
 			}

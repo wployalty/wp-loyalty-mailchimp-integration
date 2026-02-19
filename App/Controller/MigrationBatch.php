@@ -5,6 +5,8 @@ namespace WLMI\App\Controller;
 use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Settings as SettingsHelper;
 use WLMI\App\Helper\Util;
+use WLMI\App\Helper\WC;
+use WLMI\App\Helper\File as FileHelper;
 use Wlr\App\Models\Users;
 use splitbrain\PHPArchive\Tar;
 
@@ -458,7 +460,7 @@ class MigrationBatch {
 		// If all batches completed and there are errors, check/process CSV
 		if ( $state === 'completed' && $errored_operations > 0 ) {
 			// Check if CSV already exists
-			if ( file_exists( $expected_csv_path ) && is_readable( $expected_csv_path ) ) {
+			if ( FileHelper::exists( $expected_csv_path ) && FileHelper::isReadable( $expected_csv_path ) ) {
 				$csv_path   = $expected_csv_path;
 				$csv_status = 'completed';
 				// Clear any processing status
@@ -504,7 +506,7 @@ class MigrationBatch {
 						}
 					} else {
 						// Fallback to synchronous processing if Action Scheduler unavailable
-						set_time_limit( 300 );
+						WC::setTimeLimit( 300 );
 						$csv_path = self::processErrorsToCSV( $list_id, $settings );
 						if ( $csv_path !== false ) {
 							$csv_status = 'completed';
@@ -606,7 +608,7 @@ class MigrationBatch {
 
 				// Save the file
 				$file_path = $batch_log_dir . $batch_id . '-response.tar.gz';
-				$saved     = file_put_contents( $file_path, $file_content );
+				$saved     = FileHelper::putContent( $file_path, $file_content );
 
 				if ( $saved === false ) {
 					wc_get_logger()->add( 'wlmi',
@@ -651,7 +653,7 @@ class MigrationBatch {
 		$status_key = 'wlmi_csv_processing_status_' . $list_id;
 		set_transient( $status_key, 'processing', HOUR_IN_SECONDS * 2 );
 
-		set_time_limit( 300 );
+		WC::setTimeLimit( 300 );
 		$csv_path = self::processErrorsToCSV( $list_id, $settings );
 
 		if ( $csv_path !== false ) {
@@ -693,7 +695,7 @@ class MigrationBatch {
 
 		// Process each tar.gz file
 		foreach ( $tar_gz_files as $tar_gz_path ) {
-			if ( ! file_exists( $tar_gz_path ) ) {
+			if ( ! FileHelper::exists( $tar_gz_path ) ) {
 				continue;
 			}
 
@@ -703,7 +705,7 @@ class MigrationBatch {
 
 			try {
 				// Ensure the tar.gz file exists and is readable
-				if ( ! file_exists( $tar_gz_path ) || ! is_readable( $tar_gz_path ) ) {
+				if ( ! FileHelper::exists( $tar_gz_path ) || ! FileHelper::isReadable( $tar_gz_path ) ) {
 					throw new \Exception( 'Tar.gz file does not exist or is not readable' );
 				}
 
@@ -742,7 +744,7 @@ class MigrationBatch {
 
 			// Find all JSON files in extracted directory (top-level and in subdirs when extractTo preserved structure)
 			$json_files = [];
-			if ( is_dir( $extract_dir ) ) {
+			if ( FileHelper::isDir( $extract_dir ) ) {
 				$dir_iter  = new \RecursiveDirectoryIterator( $extract_dir, \RecursiveDirectoryIterator::SKIP_DOTS );
 				$flat_iter = new \RecursiveIteratorIterator( $dir_iter );
 				foreach ( $flat_iter as $file ) {
@@ -753,11 +755,11 @@ class MigrationBatch {
 			}
 
 			foreach ( $json_files as $json_file ) {
-				if ( ! file_exists( $json_file ) || ! is_readable( $json_file ) ) {
+				if ( ! FileHelper::exists( $json_file ) || ! FileHelper::isReadable( $json_file ) ) {
 					continue;
 				}
 
-				$json_content = file_get_contents( $json_file );
+				$json_content = FileHelper::getContent( $json_file );
 				if ( empty( $json_content ) ) {
 					continue;
 				}
@@ -929,7 +931,7 @@ class MigrationBatch {
 
 				// Save the file
 				$file_path = $batch_log_dir . $batch_id . '-response.tar.gz';
-				$saved     = file_put_contents( $file_path, $file_content );
+				$saved     = FileHelper::putContent( $file_path, $file_content );
 
 				if ( $saved === false ) {
 					wc_get_logger()->add( 'wlmi',
@@ -955,30 +957,12 @@ class MigrationBatch {
 	 * @return void
 	 */
 	private static function cleanupDirectory( string $dir ): void {
-		if ( ! file_exists( $dir ) ) {
-			return;
-		}
-
-		if ( is_file( $dir ) ) {
-			@unlink( $dir );
-			return;
-		}
-
-		if ( ! is_dir( $dir ) ) {
+		if ( ! FileHelper::exists( $dir ) ) {
 			return;
 		}
 
 		try {
-			$files = new \RecursiveIteratorIterator(
-				new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
-				\RecursiveIteratorIterator::CHILD_FIRST
-			);
-
-			foreach ( $files as $fileinfo ) {
-				$todo = ( $fileinfo->isDir() ? 'rmdir' : 'unlink' );
-				@$todo( $fileinfo->getRealPath() );
-			}
-			@rmdir( $dir );
+			FileHelper::delete( $dir, true );
 		} catch ( \Exception $e ) {
 			wc_get_logger()->add( 'wlmi', 'Failed to clean up directory ' . $dir . ': ' . $e->getMessage() );
 		}
