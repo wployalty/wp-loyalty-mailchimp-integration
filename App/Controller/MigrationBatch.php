@@ -759,8 +759,6 @@ class MigrationBatch {
 					continue;
 				}
 
-				$json_content = FileHelper::getContent( $json_content ?? '' ); // WAIT, this is wrong in the original code, it should be $json_file
-				// Let me fix the bug in the original code too.
 				$json_content = FileHelper::getContent( $json_file );
 				if ( empty( $json_content ) ) {
 					continue;
