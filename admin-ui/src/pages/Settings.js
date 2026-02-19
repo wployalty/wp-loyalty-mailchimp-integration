@@ -5,9 +5,9 @@ import { CommonContext, UiLabelContext } from "../Context";
 import { postRequest } from "../components/Common/postRequest";
 import { alertifyToast, errorDisplayer, getJSONData } from "../helpers/utilities";
 import EmptyPage from "../components/Common/EmptyPage";
-import ConnectionSettings from "./ConnectionSettings";
-import ListSettings from "./ListSettings";
-import MigrationStatus from "./MigrationStatus";
+import ConnectionSettings from "../components/Settings/ConnectionSettings";
+import ListSettings from "../components/Settings/ListSettings";
+import MigrationStatus from "../components/Settings/MigrationStatus";
 
 const Settings = () => {
     const {appState} = React.useContext(CommonContext);
@@ -18,6 +18,7 @@ const Settings = () => {
         list_id: "",
         migration_choice: ""
     });
+    const [lastSavedSettings, setLastSavedSettings] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
     const [connectionLoading, setConnectionLoading] = React.useState(false);
     const [disableSave, setDisableSave] = React.useState(false);
@@ -76,10 +77,14 @@ const Settings = () => {
             let resJSON = getJSONData(json.data);
             if (resJSON.success === true && resJSON.data !== null) {
                  let loadedSettings = resJSON.data;
-                 if (!loadedSettings.api_key) loadedSettings.api_key = ""; 
-                if (!loadedSettings.list_id) loadedSettings.list_id = "";
-                if (!loadedSettings.migration_choice) loadedSettings.migration_choice = "";
-                 setSettings(loadedSettings);
+                 const normalized = {
+                    api_key: loadedSettings.api_key || "",
+                    list_id: loadedSettings.list_id || "",
+                    migration_choice: loadedSettings.migration_choice || ""
+                 };
+                 setSettings(normalized);
+                 setLastSavedSettings(JSON.stringify(normalized));
+                 
                 setLicenseStatus(loadedSettings.license_status || "inactive");
                 setIsConnected(loadedSettings.connected || false);
                 setSavedListId(loadedSettings.list_id || "");
@@ -265,7 +270,14 @@ const Settings = () => {
 
     const isLicenseActive = licenseStatus === "active";
     const listTransition = savedListId !== settings.list_id && '' !== settings.list_id;
-    const saveDisabled = disableSave || !isConnected || !settings.list_id || (listTransition && !settings.migration_choice);
+
+    const isDirty = React.useMemo(() => {
+        if (!lastSavedSettings) return false;
+        const saved = JSON.parse(lastSavedSettings);
+        return saved.list_id !== settings.list_id || saved.migration_choice !== settings.migration_choice;
+    }, [settings.list_id, settings.migration_choice, lastSavedSettings]);
+
+    const saveDisabled = disableSave || !isConnected || !settings.list_id || (listTransition && !settings.migration_choice) || !isDirty;
 
     return (
         <div className="w-full flex flex-col gap-y-2 items-start h-full">
@@ -320,6 +332,7 @@ const Settings = () => {
                                             setMigrationStatus={setMigrationStatus}
                                             setErrorList={setErrorList}
                                             setErrors={setErrors}
+                                            getSettings={getSettings}
                                         />
 
                                         <ListSettings

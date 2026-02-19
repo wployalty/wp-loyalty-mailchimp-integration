@@ -164,6 +164,28 @@ class Labels {
 				[ 'label' => __( 'Yes', 'wp-loyalty-mailchimp-integration' ), 'value' => 'yes' ],
 				[ 'label' => __( 'No', 'wp-loyalty-mailchimp-integration' ), 'value' => 'no' ],
 			],
+			// Migration Status Labels
+			'migration_status_title'     => __( 'Migration Status', 'wp-loyalty-mailchimp-integration' ),
+			'migration_status_subtitle'  => __( 'Sync progress for the selected Mailchimp list', 'wp-loyalty-mailchimp-integration' ),
+			'migration_state_no_runs'    => __( 'No runs yet', 'wp-loyalty-mailchimp-integration' ),
+			'migration_state_in_progress' => __( 'In progress', 'wp-loyalty-mailchimp-integration' ),
+			'migration_state_completed_errors' => __( 'Completed with errors', 'wp-loyalty-mailchimp-integration' ),
+			'migration_state_completed'  => __( 'Completed', 'wp-loyalty-mailchimp-integration' ),
+			'migration_refresh_status'   => __( 'Refresh status', 'wp-loyalty-mailchimp-integration' ),
+			'migration_total_ops'        => __( 'Total Operations', 'wp-loyalty-mailchimp-integration' ),
+			'migration_success'          => __( 'Success', 'wp-loyalty-mailchimp-integration' ),
+			'migration_failures'         => __( 'Failures', 'wp-loyalty-mailchimp-integration' ),
+			'migration_batches'          => __( 'Batches', 'wp-loyalty-mailchimp-integration' ),
+			'migration_failed_ops'       => __( 'failed operations detected.', 'wp-loyalty-mailchimp-integration' ),
+			'csv_processing_message'     => __( 'Processing failed users CSV...', 'wp-loyalty-mailchimp-integration' ),
+			'check_csv_status'           => __( 'Check Status', 'wp-loyalty-mailchimp-integration' ),
+			'csv_ready_message'          => __( 'CSV file ready for download.', 'wp-loyalty-mailchimp-integration' ),
+			'migration_download_csv'     => __( 'Download failed users CSV', 'wp-loyalty-mailchimp-integration' ),
+			'csv_processing_failed'      => __( 'CSV processing failed. Please try again.', 'wp-loyalty-mailchimp-integration' ),
+			'migration_download_error_file' => __( 'Download error file', 'wp-loyalty-mailchimp-integration' ),
+			'migration_no_errors'        => __( 'No migration errors detected.', 'wp-loyalty-mailchimp-integration' ),
+			'migration_last_checked'     => __( 'Last checked:', 'wp-loyalty-mailchimp-integration' ),
+			'migration_no_runs_message'  => __( 'No migrations have run for this list yet. Migrations will appear here once started.', 'wp-loyalty-mailchimp-integration' ),
 		];
 	}
 

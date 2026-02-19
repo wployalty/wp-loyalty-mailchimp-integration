@@ -1,8 +1,8 @@
 import React from 'react';
-import ListSelect from "../components/Common/ListSelect";
-import DropdownWrapper from "../components/Common/DropdownWrapper";
-import { getChosenLabel } from "../helpers/utilities";
-import { UiLabelContext } from "../Context";
+import ListSelect from "../Common/ListSelect";
+import DropdownWrapper from "../Common/DropdownWrapper";
+import { getChosenLabel } from "../../helpers/utilities";
+import { UiLabelContext } from "../../Context";
 
 const ListSettings = ({ isConnected, settings, setSettings, selectedList, setSelectedList, handleSearch, lists, nextOffset, totalLists, listsLoading, isAutoFetching, errorList, setErrorList, listTransition }) => {
     const labels = React.useContext(UiLabelContext);
