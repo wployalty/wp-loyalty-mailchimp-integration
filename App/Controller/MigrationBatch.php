@@ -128,7 +128,7 @@ class MigrationBatch {
 		$include_banned = (bool) apply_filters( 'wlmi_migration_include_banned_users', false );
 		$include_unsub  = (bool) apply_filters( 'wlmi_migration_include_unsubscribed_users', false );
 
-		$batch_size  = 1000;
+		$batch_size  = apply_filters( 'wlmi_default_operations_per_batch_size', 1000 );
 		$batch_index = 0;
 		$last_id     = 0;
 		$group       = 'wlmi_migration_queue';
@@ -257,7 +257,7 @@ class MigrationBatch {
 		global $wpdb;
 		$user_model     = new Users();
 		$table          = $user_model->getTableName();
-		$limit          = 1000;
+		$limit          = apply_filters( 'wlmi_default_operations_per_batch_size', 1000 );
 		$include_banned = (bool) apply_filters( 'wlmi_migration_include_banned_users', false );
 		$include_unsub  = (bool) apply_filters( 'wlmi_migration_include_unsubscribed_users', false );
 
