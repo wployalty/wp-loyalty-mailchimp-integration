@@ -81,7 +81,7 @@ if ( ! function_exists( 'wlmi_is_loyalty_active' ) ) {
 	}
 }
 
-if ( ! wlmi_is_loyalty_active() || ! ( (int) version_compare( wlmi_get_wlr_plugin_version(), '1.4.3', '>=' ) > 0 ) ) {
+if ( ! wlmi_is_loyalty_active() || ! ( (int) version_compare( wlmi_get_wlr_plugin_version(), '1.4.4', '>=' ) > 0 ) ) {
 	return;
 }
 
@@ -89,7 +89,7 @@ defined( 'WLMI_PLUGIN_NAME' ) or define( 'WLMI_PLUGIN_NAME', 'WPLoyalty - Mailch
 defined( 'WLMI_MINIMUM_PHP_VERSION' ) or define( 'WLMI_MINIMUM_PHP_VERSION', '7.4.0' );
 defined( 'WLMI_MINIMUM_WP_VERSION' ) or define( 'WLMI_MINIMUM_WP_VERSION', '6.0' );
 defined( 'WLMI_MINIMUM_WC_VERSION' ) or define( 'WLMI_MINIMUM_WC_VERSION', '10.0' );
-defined( 'WLMI_MINIMUM_WLR_VERSION' ) or define( 'WLMI_MINIMUM_WLR_VERSION', '1.4.3' );
+defined( 'WLMI_MINIMUM_WLR_VERSION' ) or define( 'WLMI_MINIMUM_WLR_VERSION', '1.4.4' );
 defined( 'WLMI_PLUGIN_VERSION' ) or define( 'WLMI_PLUGIN_VERSION', '1.0.0' );
 defined( 'WLMI_PLUGIN_SLUG' ) or define( 'WLMI_PLUGIN_SLUG', 'wp-loyalty-mailchimp-integration' );
 defined( 'WLMI_PLUGIN_FILE' ) or define( 'WLMI_PLUGIN_FILE', __FILE__ );

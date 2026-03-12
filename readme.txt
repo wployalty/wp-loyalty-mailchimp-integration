@@ -32,7 +32,7 @@ Key capabilities:
 2. Activate **WPLoyalty - Mailchimp Integration** from the Plugins page.
 3. Ensure these plugins are active:
    - WooCommerce
-   - WPLoyalty (`wp-loyalty-rules`), version 1.4.3 or higher
+   - WPLoyalty (`wp-loyalty-rules`), version 1.4.4 or higher
 4. Open the WPLoyalty Mailchimp Integration settings page.
 5. Enter your Mailchimp API key and connect.
 6. Select your Mailchimp audience/list and save settings.
@@ -40,7 +40,7 @@ Key capabilities:
 == Frequently Asked Questions ==
 
 = Why is the plugin not loading after activation? =
-The add-on requires WooCommerce and WPLoyalty (minimum version 1.4.3). If dependencies are missing, the add-on will not initialize.
+The add-on requires WooCommerce and WPLoyalty (minimum version 1.4.4). If dependencies are missing, the add-on will not initialize.
 
 = Which PHP version is required? =
 PHP 7.4 or higher.
