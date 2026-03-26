@@ -261,4 +261,56 @@ class Api {
 		exit;
 	}
 
+	/**
+	 * Manually trigger a synchronization for the current list.
+	 *
+	 * If a sync is already running, it sets a flag to run another one
+	 * immediately after the current one finishes.
+	 *
+	 * @return void
+	 */
+	public static function performSync() {
+		if ( ! WC::isSecurityValid( 'wlmi_admin_settings' ) ) {
+			wp_send_json_error( [ 'message' => __( 'Basic check failed', 'wp-loyalty-mailchimp-integration' ) ] );
+		}
+
+		$settings = SettingsHelper::gets();
+		$list_id  = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
+
+		if ( empty( $list_id ) ) {
+			wp_send_json_error( [ 'message' => __( 'No list configured for synchronization', 'wp-loyalty-mailchimp-integration' ) ] );
+		}
+
+		try {
+			// Determine if a sync is already running
+			$status = MigrationBatch::getConsolidatedStatus( $list_id, $settings );
+
+			if ( $status['has_first_pending'] ) {
+				// A full sync starting from ID 0 is already in queue or running. No need to do anything.
+				wp_send_json_success( [
+					'message' => __( 'A full synchronization is already in progress and will include all users.', 'wp-loyalty-mailchimp-integration' ),
+					'queued'  => false,
+				] );
+			} elseif ( $status['has_any_pending'] || $status['state'] === 'in_progress' ) {
+				// Migration already in progress (but not the first batch), set flag to sync after migration
+				update_option( 'wlmi_sync_after_migration_' . $list_id, 1 );
+
+				wp_send_json_success( [
+					'message' => __( 'Sync queued. It will start after the current sync finishes.', 'wp-loyalty-mailchimp-integration' ),
+					'queued'  => true,
+				] );
+			} else {
+				// No sync running, start a fresh one immediately
+				MigrationBatch::scheduleBatchesForList( $list_id, $settings );
+
+				wp_send_json_success( [
+					'message' => __( 'Sync started successfully.', 'wp-loyalty-mailchimp-integration' ),
+					'queued'  => false,
+				] );
+			}
+		} catch ( \Exception $e ) {
+			wp_send_json_error( [ 'message' => __( 'Failed to trigger synchronization', 'wp-loyalty-mailchimp-integration' ) . ': ' . $e->getMessage() ] );
+		}
+	}
+
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import Button from "./Button";
 import {CommonContext, UiLabelContext} from "../../Context";
 
-const TitleActionContainer = ({ title, saveAction, saveDisabled = false, showSave = true }) => {
+const TitleActionContainer = ({ title, saveAction, saveDisabled = false, showSave = true, syncAction, syncDisabled = false, syncLoading = false, showSync = false }) => {
     const labels = React.useContext(UiLabelContext);
     const {appState} = React.useContext(CommonContext);
 
@@ -21,6 +21,16 @@ const TitleActionContainer = ({ title, saveAction, saveDisabled = false, showSav
             >
                 {labels.common.back_to_loyalty}
             </Button>
+
+            {showSync && (
+                <Button
+                    click={syncAction}
+                    disabled={syncDisabled || syncLoading}
+                    icon={<i className={`wlr wlrf-refresh text-md font-medium color-important ${syncLoading ? 'animate-spin' : ''}`} />}
+                >
+                    {labels.settings?.perform_sync || "Perform Sync"}
+                </Button>
+            )}
 
             {showSave && (
                 <Button

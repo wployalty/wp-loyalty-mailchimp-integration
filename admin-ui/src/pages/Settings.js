@@ -42,6 +42,7 @@ const Settings = () => {
     // Migration status state
     const [migrationStatus, setMigrationStatus] = React.useState(null);
     const [migrationStatusLoading, setMigrationStatusLoading] = React.useState(false);
+    const [syncLoading, setSyncLoading] = React.useState(false);
 
     /**
      * Fetch migration status from the backend
@@ -62,6 +63,32 @@ const Settings = () => {
             // Silent fail, keep existing status
         } finally {
             setMigrationStatusLoading(false);
+        }
+    };
+
+    /**
+     * Manually trigger synchronization
+     */
+    const handlePerformSync = async () => {
+        setSyncLoading(true);
+        try {
+            const params = {
+                action: "wlmi_perform_sync",
+                wlmi_nonce: appState.settings_nonce,
+            };
+            const json = await postRequest(params);
+            const resJSON = getJSONData(json.data);
+            if (resJSON.success === true) {
+                alertifyToast(resJSON.data.message);
+                // Refresh status after starting/queuing sync
+                fetchMigrationStatus();
+            } else {
+                alertifyToast(resJSON.data?.message || "Failed to start sync", false);
+            }
+        } catch (e) {
+            alertifyToast("Error triggering sync", false);
+        } finally {
+            setSyncLoading(false);
         }
     };
 
@@ -285,6 +312,10 @@ const Settings = () => {
                 title={labels.settings?.title || "Mailchimp Settings"} 
                 saveAction={() => saveSettings()}
                 saveDisabled={saveDisabled}
+                syncAction={handlePerformSync}
+                syncLoading={syncLoading}
+                showSync={!!(settings.list_id && settings.migration_choice)}
+                syncDisabled={false}
             />
 
             <div className="flex gap-x-6 items-stretch w-full min-h-[590px]">

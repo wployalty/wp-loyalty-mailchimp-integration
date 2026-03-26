@@ -183,6 +183,7 @@ class Labels {
 			'migration_no_errors'        => __( 'No migration errors detected.', 'wp-loyalty-mailchimp-integration' ),
 			'migration_last_checked'     => __( 'Last checked:', 'wp-loyalty-mailchimp-integration' ),
 			'migration_no_runs_message'  => __( 'No migrations have run for this list yet. Migrations will appear here once started.', 'wp-loyalty-mailchimp-integration' ),
+			'perform_sync'               => __( 'Perform Sync', 'wp-loyalty-mailchimp-integration' ),
 		];
 	}
 

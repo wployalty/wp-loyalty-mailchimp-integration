@@ -109,7 +109,7 @@ class MigrationBatch {
 	 *
 	 * @return void
 	 */
-	protected static function scheduleBatchesForList( string $list_id, array $settings ): void {
+	public static function scheduleBatchesForList( string $list_id, array $settings ): void {
 		if ( empty( $list_id ) ) {
 			return;
 		}

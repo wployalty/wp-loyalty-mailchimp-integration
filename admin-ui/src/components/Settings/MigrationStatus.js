@@ -45,7 +45,9 @@ const MigrationStatus = ({ isConnected, settings, migrationStatus, migrationStat
                         type="button"
                         onClick={() => fetchMigrationStatus()}
                         disabled={migrationStatusLoading}
-                        className={`p-1.5 rounded-md hover:bg-gray-200 transition-colors ${migrationStatusLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        className={`p-1.5 rounded-md hover:bg-gray-200 transition-colors ${
+                            migrationStatusLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
                         title={labels.settings?.migration_refresh_status || "Refresh status"}
                     >
                         <i className={`wlr wlrf-refresh text-sm text-gray-600 ${migrationStatusLoading ? 'animate-spin' : ''}`} />

@@ -37,6 +37,7 @@ class Router {
 			add_action( 'wp_ajax_wlmi_get_lists', [ Api::class, 'getLists' ] );
 			add_action( 'wp_ajax_wlmi_get_migration_status', [ Api::class, 'getMigrationStatus' ] );
 			add_action( 'wp_ajax_wlmi_download_failed_users_csv', [ Api::class, 'downloadFailedUsersCSV' ] );
+			add_action( 'wp_ajax_wlmi_perform_sync', [ Api::class, 'performSync' ] );
 
 			// license
 			LicenseHelper::init();
