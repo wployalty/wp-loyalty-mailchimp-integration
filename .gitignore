@@ -1,5 +1,6 @@
 .idea
 vendor
+AGENTS.md
 composer.lock
 admin-ui/node_modules
 admin-ui/package-lock.json
