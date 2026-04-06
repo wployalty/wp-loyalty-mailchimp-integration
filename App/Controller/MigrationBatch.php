@@ -826,6 +826,7 @@ class MigrationBatch {
 		try {
 			$csv             = new \ParseCsv\Csv();
 			$csv->titles     = [ 'email_address', 'reason' ];
+			$csv->delimiter  = ';';
 			$csv->enclose_all = true;
 
 			// Convert errors array to CSV rows format
