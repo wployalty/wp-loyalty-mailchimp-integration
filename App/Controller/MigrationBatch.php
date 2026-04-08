@@ -842,6 +842,11 @@ class MigrationBatch {
 			$saved = $csv->save( $csv_path, $csv_rows, false );
 
 			if ( $saved ) {
+				// Cleanup individual batch directories now that the consolidated CSV is created
+				foreach ( $tar_gz_files as $tar_gz_path ) {
+					self::cleanupDirectory( dirname( $tar_gz_path ) );
+				}
+
 				return $csv_path;
 			} else {
 				return false;

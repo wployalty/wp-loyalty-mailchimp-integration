@@ -301,6 +301,13 @@ class Api {
 				] );
 			} else {
 				// No sync running, start a fresh one immediately
+				// Purge old CSV report before starting a new sync to prevent stale data
+				$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+				$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
+				if ( FileHelper::exists( $csv_path ) ) {
+					FileHelper::delete( $csv_path );
+				}
+				
 				MigrationBatch::scheduleBatchesForList( $list_id, $settings );
 
 				wp_send_json_success( [
