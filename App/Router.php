@@ -50,6 +50,8 @@ class Router {
 		add_filter( 'wlr_internal_addons_list', [ Common::class, 'addInternalAddons' ] );
 		add_action( 'wlr_customer_points_balance_changed', [ Sync::class, 'syncMember' ], 10, 6 );
 		add_filter( 'wlr_delete_customer', [ Sync::class, 'onDeleteCustomer' ], 10, 2 );
+		add_action( Sync::SYNC_ACTION_HOOK, [ Sync::class, 'processQueuedMemberSync' ], 10, 1 );
+		add_action( Sync::DELETE_ACTION_HOOK, [ Sync::class, 'processQueuedMemberDelete' ], 10, 1 );
 		add_action( 'wlr_import_completed', [ MigrationBatch::class, 'onImportCompleted' ], 10, 0 );
 		add_action( 'wlmi_process_mailchimp_migration_batch', [ MigrationBatch::class, 'processBatch' ], 10, 1 );
 		add_action( 'wlmi_process_csv_errors', [ MigrationBatch::class, 'processCSVErrorsBackground' ], 10, 1 );
