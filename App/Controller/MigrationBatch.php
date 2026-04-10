@@ -14,6 +14,16 @@ defined( 'ABSPATH' ) || exit;
 
 class MigrationBatch {
 	/**
+	 * Action Scheduler hook used for Mailchimp migration batches.
+	 */
+	const MIGRATION_ACTION_HOOK = 'wlmi_process_mailchimp_migration_batch';
+
+	/**
+	 * Action Scheduler group used for Mailchimp migration batches.
+	 */
+	const MIGRATION_ACTION_GROUP = 'wlmi_migration_queue';
+
+	/**
 	 * Get pending migration state for a list in a single paginated scan.
 	 *
 	 * @param   string  $list_id
@@ -38,8 +48,8 @@ class MigrationBatch {
 
 		do {
 			$actions = as_get_scheduled_actions( [
-				'hook'     => 'wlmi_process_mailchimp_migration_batch',
-				'group'    => 'wlmi_migration_queue',
+				'hook'     => self::MIGRATION_ACTION_HOOK,
+				'group'    => self::MIGRATION_ACTION_GROUP,
 				'status'   => $statuses,
 				'per_page' => $per_page,
 				'offset'   => $offset,
@@ -102,7 +112,69 @@ class MigrationBatch {
 	}
 
 	/**
-	 * Core logic to schedule migration batches for a given list.
+	 * Schedule a migration batch immediately if it is not already queued.
+	 *
+	 * @param string $list_id
+	 * @param int    $start_id
+	 *
+	 * @return bool
+	 */
+	protected static function scheduleNextBatch( string $list_id, int $start_id ): bool {
+		if ( empty( $list_id ) ) {
+			return false;
+		}
+		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
+			wc_get_logger()->add( 'wlmi', 'Action Scheduler not available for migration scheduling.' );
+
+			return false;
+		}
+
+		$job_args = [ [
+			'start_id' => $start_id,
+			'list_id'  => $list_id,
+		] ];
+
+		if ( false !== as_next_scheduled_action( self::MIGRATION_ACTION_HOOK, $job_args, self::MIGRATION_ACTION_GROUP ) ) {
+			return false;
+		}
+
+		as_schedule_single_action( time(), self::MIGRATION_ACTION_HOOK, $job_args, self::MIGRATION_ACTION_GROUP );
+
+		return true;
+	}
+
+	/**
+	 * Start a fresh migration run by clearing stored batch IDs and queueing the first batch.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return void
+	 */
+	protected static function startMigrationRun( string $list_id ): void {
+		update_option( 'wlmi_migration_batches_' . $list_id, [] );
+		self::scheduleNextBatch( $list_id, 0 );
+	}
+
+	/**
+	 * Complete a migration run and trigger a queued follow-up sync if requested.
+	 *
+	 * @param string $list_id
+	 * @param array  $settings
+	 *
+	 * @return void
+	 */
+	protected static function completeMigrationRun( string $list_id, array $settings ): void {
+		$flag_key = 'wlmi_sync_after_migration_' . $list_id;
+		if ( ! get_option( $flag_key ) ) {
+			return;
+		}
+
+		delete_option( $flag_key );
+		self::scheduleBatchesForList( $list_id, $settings );
+	}
+
+	/**
+	 * Start a migration run for a given list by scheduling the first batch only.
 	 *
 	 * @param   string  $list_id
 	 * @param   array   $settings
@@ -119,54 +191,11 @@ class MigrationBatch {
 			return;
 		}
 
-		update_option( 'wlmi_migration_batches_' . $list_id, [] );
-
-		global $wpdb;
-		$user_model = new Users();
-		$table      = $user_model->getTableName();
-
-		$include_banned = (bool) apply_filters( 'wlmi_migration_include_banned_users', false );
-		$include_unsub  = (bool) apply_filters( 'wlmi_migration_include_unsubscribed_users', false );
-
-		$batch_size  = apply_filters( 'wlmi_default_operations_per_batch_size', 1000 );
-		$batch_index = 0;
-		$last_id     = 0;
-		$group       = 'wlmi_migration_queue';
-
-		while ( true ) {
-			$where_parts = [ $wpdb->prepare( 'id > %d', $last_id ) ];
-
-			if ( ! $include_unsub ) {
-				$where_parts[] = $wpdb->prepare( 'is_allow_send_email = %d', 1 );
-			}
-
-			if ( ! $include_banned ) {
-				$where_parts[] = "(is_banned_user IS NULL OR is_banned_user = 0 OR is_banned_user = '')";
-			}
-
-			$where = implode( ' AND ', $where_parts );
-			$where .= ' ORDER BY id ASC';
-			$where .= $wpdb->prepare( ' LIMIT %d', $batch_size );
-
-			$rows = $user_model->getWhere( $where, 'id', false );
-			if ( empty( $rows ) ) {
-				break;
-			}
-
-			$time     = time() + ( $batch_index * 120 );
-			$job_args = [ [ 'start_id' => $last_id, 'list_id' => $list_id ] ];
-			if ( false === as_next_scheduled_action( 'wlmi_process_mailchimp_migration_batch', $job_args, $group ) ) {
-				as_schedule_single_action( $time, 'wlmi_process_mailchimp_migration_batch', $job_args, $group );
-			}
-
-			$last_row = end( $rows );
-			$last_id  = isset( $last_row->id ) ? (int) $last_row->id : $last_id;
-			$batch_index ++;
-
-			if ( count( $rows ) < $batch_size ) {
-				break;
-			}
+		if ( self::isFirstBatchPending( $list_id ) ) {
+			return;
 		}
+
+		self::startMigrationRun( $list_id );
 	}
 
 	/**
@@ -246,42 +275,24 @@ class MigrationBatch {
 		if ( empty( $list_id ) ) {
 			return;
 		}
-
+		WC::setTimeLimit( 120 );
 		$settings = SettingsHelper::gets();
 		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
 			wc_get_logger()->add( 'wlmi', 'Mailchimp settings missing for migration batch.' );
-
 			return;
 		}
 
-		global $wpdb;
-		$user_model     = new Users();
-		$table          = $user_model->getTableName();
-		$limit          = apply_filters( 'wlmi_default_operations_per_batch_size', 1000 );
+		$limit          = apply_filters( 'wlmi_default_operations_per_batch_size', 500 );
 		$include_banned = (bool) apply_filters( 'wlmi_migration_include_banned_users', false );
 		$include_unsub  = (bool) apply_filters( 'wlmi_migration_include_unsubscribed_users', false );
-
-		$where_parts = [ $wpdb->prepare( 'id > %d', $start_id ) ];
-		if ( ! $include_unsub ) {
-			$where_parts[] = $wpdb->prepare( 'is_allow_send_email = %d', 1 );
-		}
-		if ( ! $include_banned ) {
-			$where_parts[] = "(is_banned_user IS NULL OR is_banned_user = 0 OR is_banned_user = '')";
-		}
-		$where = implode( ' AND ', $where_parts );
-		$where .= ' ORDER BY id ASC';
-		$where .= $wpdb->prepare( ' LIMIT %d', $limit );
-
-		$query = "SELECT * FROM {$table} WHERE {$where}";
-		$users = $user_model->rawQuery( $query, false );
-		if ( empty( $users ) ) {
-			return;
-		}
+		$points_column  = SettingsHelper::getPointsSyncColumn();
 
 		$base_url   = site_url() . '?wlr_ref=';
 		$operations = [];
 		$last_id    = 0;
-		foreach ( $users as $user ) {
+		$count      = 0;
+
+		foreach ( self::streamUsers( $start_id, $limit, $include_banned, $include_unsub ) as $user ) {
 			$last_id    = isset( $user->id ) ? (int) $user->id : $last_id;
 			$user_email = isset( $user->user_email ) ? sanitize_email( $user->user_email ) : '';
 			if ( empty( $user_email ) ) {
@@ -289,14 +300,10 @@ class MigrationBatch {
 			}
 
 			$ref_code = isset( $user->refer_code ) ? (string) $user->refer_code : '';
-			$ref_url  = '';
-			if ( ! empty( $ref_code ) ) {
-				$ref_url = $base_url . $ref_code;
-			}
+			$ref_url  = ! empty( $ref_code ) ? $base_url . $ref_code : '';
+			$points   = isset( $user->{$points_column} ) ? (int) $user->{$points_column} : 0;
 
-			$points          = isset( $user->points ) ? (int) $user->points : 0;
 			$subscriber_hash = md5( strtolower( trim( $user_email ) ) );
-
 			$operations[] = [
 				'method'       => 'PUT',
 				'path'         => "/lists/{$list_id}/members/{$subscriber_hash}",
@@ -312,20 +319,20 @@ class MigrationBatch {
 					],
 				] ),
 			];
+			$count++;
 		}
 
 		if ( empty( $operations ) ) {
+			self::completeMigrationRun( $list_id, $settings );
 			return;
 		}
 
 		$response = MailchimpHelper::startBatch( $settings, $operations );
 		if ( empty( $response ) ) {
 			wc_get_logger()->add( 'wlmi', 'Mailchimp batch migration failed for start_id: ' . $start_id );
-
 			return;
 		}
 
-		// Store batch ID in option for error tracking
 		if ( isset( $response->id ) ) {
 			$batch_id   = (string) $response->id;
 			$option_key = 'wlmi_migration_batches_' . $list_id;
@@ -336,12 +343,71 @@ class MigrationBatch {
 			}
 		}
 
-		// If migration has finished for this list and a post-migration sync was requested, schedule it now.
-		if ( ! self::hasPendingMigrationBatches( $list_id ) ) {
-			$flag_key = 'wlmi_sync_after_migration_' . $list_id;
-			if ( get_option( $flag_key ) ) {
-				delete_option( $flag_key );
-				self::scheduleBatchesForList( $list_id, $settings );
+		if ( $count >= $limit && $last_id > 0 ) {
+			self::scheduleNextBatch( $list_id, $last_id );
+			return;
+		}
+
+		self::completeMigrationRun( $list_id, $settings );
+	}
+
+	/**
+	 * Generator that yields user rows one at a time using a cursor-based approach,
+	 * so the full result set is never held in memory simultaneously.
+	 *
+	 * @param int  $start_id
+	 * @param int  $limit
+	 * @param bool $include_banned
+	 * @param bool $include_unsub
+	 *
+	 * @return \Generator
+	 */
+	private static function streamUsers(
+		int $start_id,
+		int $limit,
+		bool $include_banned,
+		bool $include_unsub
+	): \Generator {
+		global $wpdb;
+
+		$user_model  = new Users();
+		$table       = $user_model->getTableName();
+		$chunk_size  = apply_filters( 'wlmi_stream_chunk_size', 100 ); // rows fetched per DB round-trip
+		$fetched     = 0;
+		$cursor_id   = $start_id;
+
+		while ( $fetched < $limit ) {
+			$remaining   = $limit - $fetched;
+			$current_chunk = min( $chunk_size, $remaining );
+
+			$where_parts = [ $wpdb->prepare( 'id > %d', $cursor_id ) ];
+			if ( ! $include_unsub ) {
+				$where_parts[] = $wpdb->prepare( 'is_allow_send_email = %d', 1 );
+			}
+			if ( ! $include_banned ) {
+				$where_parts[] = "(is_banned_user IS NULL OR is_banned_user = 0 OR is_banned_user = '')";
+			}
+
+			$where = implode( ' AND ', $where_parts );
+			$where .= ' ORDER BY id ASC';
+			$where .= $wpdb->prepare( ' LIMIT %d', $current_chunk );
+
+			$query = "SELECT id, user_email, refer_code, " . SettingsHelper::getPointsSyncColumn() . " FROM {$table} WHERE {$where}";
+			$rows  = $user_model->rawQuery( $query, false );
+
+			if ( empty( $rows ) ) {
+				return; // No more rows — stop the generator.
+			}
+
+			foreach ( $rows as $row ) {
+				yield $row;
+				$cursor_id = isset( $row->id ) ? (int) $row->id : $cursor_id;
+				$fetched++;
+			}
+
+			// If we got fewer rows than requested, we've exhausted the table.
+			if ( count( $rows ) < $current_chunk ) {
+				return;
 			}
 		}
 	}

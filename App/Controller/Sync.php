@@ -159,6 +159,7 @@ class Sync {
 		if ( empty( $user ) || ! is_object( $user ) ) {
 			return;
 		}
+		$points_column = SettingsHelper::getPointsSyncColumn();
 
 		$ref_code = isset( $user->refer_code ) ? (string) $user->refer_code : '';
 		$ref_url  = '';
@@ -170,7 +171,7 @@ class Sync {
 		$merge_fields = [
 			'REF_CODE' => $ref_code,
 			'REF_URL'  => $ref_url,
-			'POINTS'   => isset( $user->points ) ? (int) $user->points : 0,
+			'POINTS'   => isset( $user->{$points_column} ) ? (int) $user->{$points_column} : 0,
 		];
 
 		MailchimpHelper::upsertMember( $list_id, $user_email, $merge_fields );

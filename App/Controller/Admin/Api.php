@@ -262,10 +262,10 @@ class Api {
 	}
 
 	/**
-	 * Manually trigger a synchronization for the current list.
+	 * Manually trigger a synchronization run for the current list.
 	 *
-	 * If a sync is already running, it sets a flag to run another one
-	 * immediately after the current one finishes.
+	 * If a sync is already running, it sets a flag to start a fresh run
+	 * immediately after the current chained migration finishes.
 	 *
 	 * @return void
 	 */
@@ -286,21 +286,21 @@ class Api {
 			$status = MigrationBatch::getConsolidatedStatus( $list_id, $settings );
 
 			if ( $status['has_first_pending'] ) {
-				// A full sync starting from ID 0 is already in queue or running. No need to do anything.
+				// A fresh sync run starting from ID 0 is already queued or running.
 				wp_send_json_success( [
-					'message' => __( 'A full synchronization is already in progress and will include all users.', 'wp-loyalty-mailchimp-integration' ),
+					'message' => __( 'A synchronization run is already in progress and will continue processing all users batch by batch.', 'wp-loyalty-mailchimp-integration' ),
 					'queued'  => false,
 				] );
 			} elseif ( $status['has_any_pending'] || $status['state'] === 'in_progress' ) {
-				// Migration already in progress (but not the first batch), set flag to sync after migration
+				// A chained migration batch is already in progress, so queue a fresh run after it completes.
 				update_option( 'wlmi_sync_after_migration_' . $list_id, 1 );
 
 				wp_send_json_success( [
-					'message' => __( 'Sync queued. It will start after the current sync finishes.', 'wp-loyalty-mailchimp-integration' ),
+					'message' => __( 'A new synchronization run has been queued. It will start after the current batch chain finishes.', 'wp-loyalty-mailchimp-integration' ),
 					'queued'  => true,
 				] );
 			} else {
-				// No sync running, start a fresh one immediately
+				// No sync is running, so queue the first batch of a fresh run immediately.
 				// Purge old CSV report before starting a new sync to prevent stale data
 				$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
 				$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
@@ -311,7 +311,7 @@ class Api {
 				MigrationBatch::scheduleBatchesForList( $list_id, $settings );
 
 				wp_send_json_success( [
-					'message' => __( 'Sync started successfully.', 'wp-loyalty-mailchimp-integration' ),
+					'message' => __( 'Synchronization run started successfully. The first batch has been queued.', 'wp-loyalty-mailchimp-integration' ),
 					'queued'  => false,
 				] );
 			}

@@ -37,6 +37,20 @@ class Settings {
 	}
 
 	/**
+	 * Resolve which loyalty points column should be synced to Mailchimp.
+	 *
+	 * Supported values are: points, used_total_points, earn_total_points.
+	 *
+	 * @return string
+	 */
+	public static function getPointsSyncColumn(): string {
+		$column          = (string) apply_filters( 'wlmi_mailchimp_points_column', 'points' );
+		$allowed_columns = [ 'points', 'used_total_points', 'earn_total_points' ];
+
+		return in_array( $column, $allowed_columns, true ) ? $column : 'points';
+	}
+
+	/**
 	 * Get default value for a specific static option key.
 	 *
 	 * @param string $option_key The option key to get default for.
