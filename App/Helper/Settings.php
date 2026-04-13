@@ -5,6 +5,8 @@ namespace WLMI\App\Helper;
 defined( 'ABSPATH' ) || exit;
 
 class Settings {
+	private static ?array $cached_settings = null;
+
 	public static function get( $key, $value ) {
 		$settings = self::gets();
 
@@ -12,6 +14,10 @@ class Settings {
 	}
 
 	public static function gets() {
+		if ( self::$cached_settings !== null ) {
+			return self::$cached_settings;
+		}
+
 		$settings = get_option( 'wlmi_settings', self::getOptionDefault( 'wlmi_settings' ) );
 
 		/**
@@ -24,7 +30,18 @@ class Settings {
 		 *
 		 * @return array
 		 */
-		return apply_filters( 'wlmi_get_settings_data', $settings );
+		self::$cached_settings = apply_filters( 'wlmi_get_settings_data', $settings );
+
+		return self::$cached_settings;
+	}
+
+	/**
+	 * Clear the settings cache when settings are updated.
+	 *
+	 * @return void
+	 */
+	public static function clearCache(): void {
+		self::$cached_settings = null;
 	}
 
 	public static function getDefaultSettings(): array {

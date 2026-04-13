@@ -87,6 +87,8 @@ class Settings {
 			$settings['migration_choice'] = '';
 		}
 		update_option( 'wlmi_settings', $settings );
+		SettingsHelper::clearCache();
+
 		if ( $list_transition ) {
 			MigrationBatch::scheduleBatches( $settings );
 		}
