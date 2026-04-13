@@ -343,8 +343,7 @@ class License {
 			return;
 		}
 
-		$input = new Input();
-		$page  = $input->get( 'page', '' );
+		$page  = Input::get( 'page', '' );
 
 		if ( empty( $page ) || $page !== WLMI_PLUGIN_SLUG ) {
 			return;
