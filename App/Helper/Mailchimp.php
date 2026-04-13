@@ -64,6 +64,48 @@ class Mailchimp {
 	}
 
 	/**
+	 * Get connection status with caching.
+	 *
+	 * @param string $api_key
+	 * @param string $server
+	 * @param bool $force_refresh
+	 *
+	 * @return bool|null
+	 */
+	public static function getConnectionStatus( $api_key, $server = '', $force_refresh = false ) {
+		if ( empty( $api_key ) ) {
+			return false;
+		}
+
+		$transient_key = 'wlmi_connection_status';
+
+		if ( ! $force_refresh ) {
+			$cached = get_transient( $transient_key );
+			if ( $cached !== false ) {
+				return (bool) $cached;
+			}
+		}
+
+		$status = self::checkConnection( $api_key, $server );
+
+		if ( $status ) {
+			$cache_time = (int) apply_filters( 'wlmi_connection_cache_duration', 5 * MINUTE_IN_SECONDS );
+			set_transient( $transient_key, $status, $cache_time );
+		}
+
+		return $status;
+	}
+
+	/**
+	 * Clear connection status cache.
+	 *
+	 * @return void
+	 */
+	public static function clearConnectionCache() {
+		delete_transient( 'wlmi_connection_status' );
+	}
+
+	/**
 	 * Fetch list batch.
 	 *
 	 * @param array $settings

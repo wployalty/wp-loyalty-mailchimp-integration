@@ -23,7 +23,7 @@ class Settings {
 		}
 		$settings = SettingsHelper::gets();
 
-		$settings['connected'] = MailchimpHelper::checkConnection( $settings['api_key'] ?? '', $settings['server'] ?? '' );
+		$settings['connected'] = MailchimpHelper::getConnectionStatus( $settings['api_key'] ?? '', $settings['server'] ?? '' );
 
 		wp_send_json_success( $settings );
 	}

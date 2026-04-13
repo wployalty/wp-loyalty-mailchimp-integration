@@ -44,6 +44,8 @@ class Api {
 		$settings['server']  = $server;
 		update_option( 'wlmi_settings', $settings );
 
+		MailchimpHelper::clearConnectionCache();
+
 		wp_send_json_success( [ 'message' => __( 'Connected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
 	}
 
@@ -63,6 +65,8 @@ class Api {
 		$settings['list_id']                     = '';
 		$settings['migration_choice']            = '';
 		update_option( 'wlmi_settings', $settings );
+
+		MailchimpHelper::clearConnectionCache();
 
 		wp_send_json_success( [ 'message' => __( 'Disconnected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
 	}
