@@ -19,6 +19,11 @@ class MigrationBatch {
 	const MIGRATION_SCHEDULING_LOCK_PREFIX = 'wlmi_scheduling_lock_';
 
 	/**
+	 * Option key prefix used to track migration run state per list.
+	 */
+	const MIGRATION_RUN_FLAG_PREFIX = 'wlmi_migration_running_';
+
+	/**
 	 * Action Scheduler hook used for Mailchimp migration batches.
 	 */
 	const MIGRATION_ACTION_HOOK = 'wlmi_process_mailchimp_migration_batch';
@@ -29,7 +34,7 @@ class MigrationBatch {
 	const MIGRATION_ACTION_GROUP = 'wlmi_migration_queue';
 
 	/**
-	 * Get pending migration state for a list in a single paginated scan.
+	 * Get pending migration state for a list using flag-based tracking.
 	 *
 	 * @param   string  $list_id
 	 *
@@ -40,56 +45,13 @@ class MigrationBatch {
 			'has_first_batch_pending' => false,
 			'has_any_batch_pending'   => false,
 		];
-		if ( ! function_exists( 'as_get_scheduled_actions' ) ) {
-			return $state;
+
+		$flag = get_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
+
+		if ( ! empty( $flag ) && is_array( $flag ) ) {
+			$state['has_any_batch_pending']   = true;
+			$state['has_first_batch_pending'] = ! empty( $flag['first_batch_scheduled'] );
 		}
-
-		$per_page = 50;
-		$offset   = 0;
-		$statuses = class_exists( 'ActionScheduler_Store' ) ? [
-			\ActionScheduler_Store::STATUS_PENDING,
-			\ActionScheduler_Store::STATUS_RUNNING
-		] : [ 'pending', 'running' ];
-
-		do {
-			$actions = as_get_scheduled_actions( [
-				'hook'     => self::MIGRATION_ACTION_HOOK,
-				'group'    => self::MIGRATION_ACTION_GROUP,
-				'status'   => $statuses,
-				'per_page' => $per_page,
-				'offset'   => $offset,
-			], OBJECT );
-
-			if ( empty( $actions ) || ! is_array( $actions ) ) {
-				break;
-			}
-
-			foreach ( $actions as $action ) {
-				if ( ! is_object( $action ) || ! method_exists( $action, 'get_args' ) ) {
-					continue;
-				}
-				$args = $action->get_args();
-				if ( empty( $args ) || ! is_array( $args ) ) {
-					continue;
-				}
-				$job_data   = isset( $args[0] ) && is_array( $args[0] ) ? $args[0] : [];
-				$job_list   = (string) ( $job_data['list_id'] ?? '' );
-				$job_start  = (int) ( $job_data['start_id'] ?? - 1 );
-				$list_match = $job_list === $list_id;
-				if ( $list_match ) {
-					$state['has_any_batch_pending'] = true;
-					if ( $job_start === 0 ) {
-						$state['has_first_batch_pending'] = true;
-					}
-				}
-				if ( $state['has_first_batch_pending'] && $state['has_any_batch_pending'] ) {
-					return $state;
-				}
-			}
-
-			$count  = count( $actions );
-			$offset += $per_page;
-		} while ( $count >= $per_page );
 
 		return $state;
 	}
@@ -102,7 +64,8 @@ class MigrationBatch {
 	 * @return bool
 	 */
 	protected static function isFirstBatchPending( string $list_id ): bool {
-		return self::getPendingMigrationState( $list_id )['has_first_batch_pending'];
+		$flag = get_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
+		return ! empty( $flag['first_batch_scheduled'] );
 	}
 
 	/**
@@ -113,7 +76,7 @@ class MigrationBatch {
 	 * @return bool
 	 */
 	protected static function hasPendingMigrationBatches( string $list_id ): bool {
-		return self::getPendingMigrationState( $list_id )['has_any_batch_pending'];
+		return get_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id ) !== false;
 	}
 
 	/**
@@ -157,6 +120,10 @@ class MigrationBatch {
 	 */
 	protected static function startMigrationRun( string $list_id ): void {
 		update_option( 'wlmi_migration_batches_' . $list_id, [] );
+		update_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id, [
+			'first_batch_scheduled' => true,
+			'started_at'            => time(),
+		] );
 		self::scheduleNextBatch( $list_id, 0 );
 	}
 
@@ -377,6 +344,7 @@ class MigrationBatch {
 		}
 
 		if ( empty( $operations ) ) {
+			delete_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
 			self::completeMigrationRun( $list_id, $settings );
 			return;
 		}
@@ -402,6 +370,7 @@ class MigrationBatch {
 			return;
 		}
 
+		delete_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
 		self::completeMigrationRun( $list_id, $settings );
 	}
 
