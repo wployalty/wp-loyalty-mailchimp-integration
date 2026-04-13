@@ -308,11 +308,19 @@ class Api {
 					FileHelper::delete( $csv_path );
 				}
 				
-				MigrationBatch::scheduleBatchesForList( $list_id, $settings );
+				$result = MigrationBatch::scheduleBatchesForList( $list_id, $settings );
+				$message = __( 'Synchronization run started successfully. The first batch has been queued.', 'wp-loyalty-mailchimp-integration' );
+				$queued  = false;
+
+				if ( $result === 'already_pending' || $result === 'locked' ) {
+					$message = __( 'A synchronization run is already being started. Please wait for the current batch chain to continue.', 'wp-loyalty-mailchimp-integration' );
+				} elseif ( $result === 'unavailable' ) {
+					$message = __( 'Synchronization could not be started because Action Scheduler is unavailable.', 'wp-loyalty-mailchimp-integration' );
+				}
 
 				wp_send_json_success( [
-					'message' => __( 'Synchronization run started successfully. The first batch has been queued.', 'wp-loyalty-mailchimp-integration' ),
-					'queued'  => false,
+					'message' => $message,
+					'queued'  => $queued,
 				] );
 			}
 		} catch ( \Exception $e ) {

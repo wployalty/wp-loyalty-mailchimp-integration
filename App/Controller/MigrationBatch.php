@@ -14,6 +14,11 @@ defined( 'ABSPATH' ) || exit;
 
 class MigrationBatch {
 	/**
+	 * Transient key prefix used to serialize migration run starts per list.
+	 */
+	const MIGRATION_SCHEDULING_LOCK_PREFIX = 'wlmi_scheduling_lock_';
+
+	/**
 	 * Action Scheduler hook used for Mailchimp migration batches.
 	 */
 	const MIGRATION_ACTION_HOOK = 'wlmi_process_mailchimp_migration_batch';
@@ -156,6 +161,44 @@ class MigrationBatch {
 	}
 
 	/**
+	 * Build the transient key used to lock migration run starts for a list.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return string
+	 */
+	protected static function getSchedulingLockKey( string $list_id ): string {
+		return self::MIGRATION_SCHEDULING_LOCK_PREFIX . $list_id;
+	}
+
+	/**
+	 * Acquire the transient lock used to serialize migration run starts.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return bool
+	 */
+	protected static function acquireSchedulingLock( string $list_id ): bool {
+		$lock_key = self::getSchedulingLockKey( $list_id );
+		if ( get_transient( $lock_key ) ) {
+			return false;
+		}
+
+		return set_transient( $lock_key, 1, 300 );
+	}
+
+	/**
+	 * Release the transient lock used to serialize migration run starts.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return void
+	 */
+	protected static function releaseSchedulingLock( string $list_id ): void {
+		delete_transient( self::getSchedulingLockKey( $list_id ) );
+	}
+
+	/**
 	 * Complete a migration run and trigger a queued follow-up sync if requested.
 	 *
 	 * @param string $list_id
@@ -169,8 +212,10 @@ class MigrationBatch {
 			return;
 		}
 
-		delete_option( $flag_key );
-		self::scheduleBatchesForList( $list_id, $settings );
+		$result = self::scheduleBatchesForList( $list_id, $settings );
+		if ( in_array( $result, [ 'scheduled', 'already_pending' ], true ) ) {
+			delete_option( $flag_key );
+		}
 	}
 
 	/**
@@ -179,23 +224,32 @@ class MigrationBatch {
 	 * @param   string  $list_id
 	 * @param   array   $settings
 	 *
-	 * @return void
+	 * @return string One of: scheduled, already_pending, locked, unavailable, invalid
 	 */
-	public static function scheduleBatchesForList( string $list_id, array $settings ): void {
+	public static function scheduleBatchesForList( string $list_id, array $settings ): string {
 		if ( empty( $list_id ) ) {
-			return;
+			return 'invalid';
 		}
 		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
 			wc_get_logger()->add( 'wlmi', 'Action Scheduler not available for migration scheduling.' );
 
-			return;
+			return 'unavailable';
+		}
+		if ( ! self::acquireSchedulingLock( $list_id ) ) {
+			return 'locked';
 		}
 
-		if ( self::isFirstBatchPending( $list_id ) ) {
-			return;
-		}
+		try {
+			if ( self::isFirstBatchPending( $list_id ) ) {
+				return 'already_pending';
+			}
 
-		self::startMigrationRun( $list_id );
+			self::startMigrationRun( $list_id );
+
+			return 'scheduled';
+		} finally {
+			self::releaseSchedulingLock( $list_id );
+		}
 	}
 
 	/**
