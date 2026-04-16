@@ -2,7 +2,6 @@
 
 namespace WLMI\App\Controller\Admin;
 
-use WLMI\App\Helper\Util;
 use WLMI\App\Helper\WC;
 
 defined( 'ABSPATH' ) or die;
@@ -63,10 +62,6 @@ class Labels {
 			'plugin_name'                  => WLMI_PLUGIN_NAME,
 			'version'                      => 'v' . WLMI_PLUGIN_VERSION,
 			'save'                         => __( 'Save Changes', 'wp-loyalty-mailchimp-integration' ),
-			'upgrade_text'                 => __( 'Activate the license.', 'wp-loyalty-mailchimp-integration' ),
-			'buy_pro_button_text'          => __( 'Enter License key', 'wp-loyalty-mailchimp-integration' ),
-			'license_required_description' => __('Activate your license to configure the Mailchimp integration settings.','wp-loyalty-mailchimp-integration'),
-			'buy_pro_url'                  => Util::getSettingsPageUrl('license'),
 
 			'back'                         => __( 'Back', 'wp-loyalty-mailchimp-integration' ),
 			'back_to_apps'                 => __( 'Back to WPLoyalty', 'wp-loyalty-mailchimp-integration' ),

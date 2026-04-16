@@ -46,7 +46,7 @@ class Settings {
 			wp_send_json_error( [ 'message' => __( 'Settings not saved!', 'wp-loyalty-mailchimp-integration' ) ] );
 		}
 
-		// Get existing settings so we can support partial updates (e.g. license tab only).
+		// Get existing settings so we can support partial updates.
 		$existing_settings = SettingsHelper::gets();
 		if ( ! is_array( $existing_settings ) ) {
 			$existing_settings = [];

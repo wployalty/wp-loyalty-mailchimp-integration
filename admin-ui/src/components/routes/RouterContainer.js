@@ -2,7 +2,6 @@ import React from 'react';
 import { Navigate, Route, Routes } from "react-router-dom";
 
 const Settings = React.lazy(() => import(/* webpackChunkName: "Settings" */"../../pages/Settings"));
-const License = React.lazy(() => import(/* webpackChunkName: "License" */"../../pages/License"));
 
 const RouterContainer = () => {
     return (
@@ -19,14 +18,7 @@ const RouterContainer = () => {
                     }
                 />
 
-                <Route
-                    path={"/license"}
-                    element={
-                        <React.Suspense fallback={<div />}>
-                            <License />
-                        </React.Suspense>
-                    }
-                />
+
 
                 <Route path="/" element={<Navigate to={"/settings"} replace />} />
             </Routes>

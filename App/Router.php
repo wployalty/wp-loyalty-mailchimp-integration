@@ -4,12 +4,10 @@ namespace WLMI\App;
 
 use WLMI\App\Controller\Admin\Labels;
 use WLMI\App\Controller\Admin\Settings;
-use WLMI\App\Controller\Admin\License;
 use WLMI\App\Controller\Admin\Api;
 use WLMI\App\Controller\Common;
 use WLMI\App\Controller\MigrationBatch;
 use WLMI\App\Controller\Sync;
-use WLMI\App\Helper\License as LicenseHelper;
 
 defined( 'ABSPATH' ) or die;
 
@@ -38,14 +36,6 @@ class Router {
 			add_action( 'wp_ajax_wlmi_get_migration_status', [ Api::class, 'getMigrationStatus' ] );
 			add_action( 'wp_ajax_wlmi_download_failed_users_csv', [ Api::class, 'downloadFailedUsersCSV' ] );
 			add_action( 'wp_ajax_wlmi_perform_sync', [ Api::class, 'performSync' ] );
-
-			// license
-			LicenseHelper::init();
-			add_action( 'wp_ajax_wlmi_activate_license', [ License::class, 'activate' ] );
-			add_action( 'wp_ajax_wlmi_deactivate_license', [ License::class, 'deActivate' ] );
-			add_action( 'wp_ajax_wlmi_check_license_status', [ License::class, 'checkStatus' ] );
-			add_filter( 'wlmi_get_settings_data', [ LicenseHelper::class, 'appendLicenseToSettings' ] );
-			add_action( 'in_admin_header', [ LicenseHelper::class, 'showHeaderNotice' ] );
 		}
 		add_filter( 'wlr_internal_addons_list', [ Common::class, 'addInternalAddons' ] );
 		add_action( 'wlr_customer_points_balance_changed', [ Sync::class, 'syncMember' ], 10, 6 );
@@ -54,6 +44,6 @@ class Router {
 		add_action( Sync::DELETE_ACTION_HOOK, [ Sync::class, 'processQueuedMemberDelete' ], 10, 1 );
 		add_action( 'wlr_import_completed', [ MigrationBatch::class, 'onImportCompleted' ], 10, 0 );
 		add_action( 'wlmi_process_mailchimp_migration_batch', [ MigrationBatch::class, 'processBatch' ], 10, 1 );
-		add_action( 'wlmi_process_csv_errors', [ MigrationBatch::class, 'processCSVErrorsBackground' ], 10, 1 );
+		add_action( 'wlmi_check_batch_result', [ MigrationBatch::class, 'checkBatchResult' ], 10, 1 );
 	}
 }

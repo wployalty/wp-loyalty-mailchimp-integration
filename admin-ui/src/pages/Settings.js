@@ -4,7 +4,6 @@ import ShimmerLoading from "../components/Common/ShimmerLoading";
 import { CommonContext, UiLabelContext } from "../Context";
 import { postRequest } from "../components/Common/postRequest";
 import { alertifyToast, errorDisplayer, getJSONData } from "../helpers/utilities";
-import EmptyPage from "../components/Common/EmptyPage";
 import ConnectionSettings from "../components/Settings/ConnectionSettings";
 import ListSettings from "../components/Settings/ListSettings";
 import MigrationStatus from "../components/Settings/MigrationStatus";
@@ -26,7 +25,6 @@ const Settings = () => {
     const [errors, setErrors] = React.useState({});
     const [isConnected, setIsConnected] = React.useState(false);
     const [savedListId, setSavedListId] = React.useState("");
-    const [licenseStatus, setLicenseStatus] = React.useState("inactive");
 
     // List selection state
     const [lists, setLists] = React.useState([]);
@@ -112,7 +110,7 @@ const Settings = () => {
                  setSettings(normalized);
                  setLastSavedSettings(JSON.stringify(normalized));
                  
-                setLicenseStatus(loadedSettings.license_status || "inactive");
+
                 setIsConnected(loadedSettings.connected || false);
                 setSavedListId(loadedSettings.list_id || "");
 
@@ -295,7 +293,7 @@ const Settings = () => {
         });
     }
 
-    const isLicenseActive = licenseStatus === "active";
+
     const listTransition = savedListId !== settings.list_id && '' !== settings.list_id;
 
     const isDirty = React.useMemo(() => {
@@ -337,8 +335,6 @@ const Settings = () => {
                         </div>
                     ) : (
                         <React.Fragment>
-                            {isLicenseActive ? (
-                                <React.Fragment>
                                     <h4 className="text-dark font-semibold text-lg tracking-wide">
                                         {labels.settings?.title || "Mailchimp Settings"}
                                     </h4>
@@ -392,17 +388,6 @@ const Settings = () => {
                                             appState={appState}
                                         />
                                     </div>
-                                </React.Fragment>
-                            ) : (
-                                <EmptyPage
-                                    title={labels.common?.upgrade_text}
-                                    description={
-                                        labels.common?.license_required_description ||
-                                        "Activate your license to configure the Mailchimp integration settings."
-                                    }
-                                    buttonText={labels.common?.buy_pro_button_text || "Buy Pro"}
-                                />
-                            )}
                         </React.Fragment>
                     )}
                  </div>

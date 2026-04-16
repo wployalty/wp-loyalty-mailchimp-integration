@@ -34,6 +34,21 @@ class MigrationBatch {
 	const MIGRATION_ACTION_GROUP = 'wlmi_migration_queue';
 
 	/**
+	 * Action Scheduler hook for checking a single Mailchimp batch result.
+	 */
+	const BATCH_CHECK_HOOK = 'wlmi_check_batch_result';
+
+	/**
+	 * Action Scheduler group for batch result checking.
+	 */
+	const BATCH_CHECK_GROUP = 'wlmi_batch_check';
+
+	/**
+	 * Option key prefix for accumulated migration stats per list.
+	 */
+	const STATS_OPTION_PREFIX = 'wlmi_migration_stats_';
+
+	/**
 	 * Get pending migration state for a list using flag-based tracking.
 	 *
 	 * @param   string  $list_id
@@ -80,14 +95,15 @@ class MigrationBatch {
 	}
 
 	/**
-	 * Schedule a migration batch immediately if it is not already queued.
+	 * Schedule the next migration batch with pacing delay and jitter.
 	 *
 	 * @param string $list_id
 	 * @param int    $start_id
+	 * @param int    $extra_delay Additional delay in seconds (used for throttle back-off).
 	 *
 	 * @return bool
 	 */
-	protected static function scheduleNextBatch( string $list_id, int $start_id ): bool {
+	protected static function scheduleNextBatch( string $list_id, int $start_id, int $extra_delay = 0 ): bool {
 		if ( empty( $list_id ) ) {
 			return false;
 		}
@@ -106,13 +122,17 @@ class MigrationBatch {
 			return false;
 		}
 
-		as_schedule_single_action( time(), self::MIGRATION_ACTION_HOOK, $job_args, self::MIGRATION_ACTION_GROUP );
+		$base_delay = (int) apply_filters( 'wlmi_batch_pacing_delay', 15 );
+		$jitter     = wp_rand( 0, 10 );
+		$delay      = max( 0, $base_delay + $jitter + $extra_delay );
+
+		as_schedule_single_action( time() + $delay, self::MIGRATION_ACTION_HOOK, $job_args, self::MIGRATION_ACTION_GROUP );
 
 		return true;
 	}
 
 	/**
-	 * Start a fresh migration run by clearing stored batch IDs and queueing the first batch.
+	 * Start a fresh migration run by clearing stored state and queueing the first batch.
 	 *
 	 * @param string $list_id
 	 *
@@ -120,11 +140,86 @@ class MigrationBatch {
 	 */
 	protected static function startMigrationRun( string $list_id ): void {
 		update_option( 'wlmi_migration_batches_' . $list_id, [] );
+		update_option( self::STATS_OPTION_PREFIX . $list_id, self::getDefaultStats() );
+		delete_option( 'wlmi_rate_bucket_' . $list_id );
 		update_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id, [
 			'first_batch_scheduled' => true,
 			'started_at'            => time(),
 		] );
+
+		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
+		if ( FileHelper::exists( $csv_path ) ) {
+			FileHelper::delete( $csv_path );
+		}
+
 		self::scheduleNextBatch( $list_id, 0 );
+	}
+
+	/**
+	 * Get default stats structure.
+	 *
+	 * @return array
+	 */
+	protected static function getDefaultStats(): array {
+		return [
+			'total_operations'    => 0,
+			'finished_operations' => 0,
+			'errored_operations'  => 0,
+			'batches_submitted'   => 0,
+			'batches_completed'   => 0,
+			'batches_checking'    => 0,
+			'has_errors'          => false,
+			'last_updated_at'     => 0,
+		];
+	}
+
+	/**
+	 * Atomically increment accumulated stats for a list after a batch finishes.
+	 *
+	 * @param string $list_id
+	 * @param int    $total
+	 * @param int    $finished
+	 * @param int    $errored
+	 *
+	 * @return void
+	 */
+	protected static function accumulateStats( string $list_id, int $total, int $finished, int $errored ): void {
+		$stats = get_option( self::STATS_OPTION_PREFIX . $list_id, self::getDefaultStats() );
+		if ( ! is_array( $stats ) ) {
+			$stats = self::getDefaultStats();
+		}
+
+		$stats['total_operations']    += $total;
+		$stats['finished_operations'] += $finished;
+		$stats['errored_operations']  += $errored;
+		$stats['batches_completed']   ++;
+		$stats['batches_checking']    = max( 0, (int) ( $stats['batches_checking'] ?? 0 ) - 1 );
+		$stats['last_updated_at']     = time();
+		if ( $errored > 0 ) {
+			$stats['has_errors'] = true;
+		}
+
+		update_option( self::STATS_OPTION_PREFIX . $list_id, $stats );
+	}
+
+	/**
+	 * Record that a new batch has been submitted to Mailchimp (increment counters).
+	 *
+	 * @param string $list_id
+	 *
+	 * @return void
+	 */
+	protected static function recordBatchSubmitted( string $list_id ): void {
+		$stats = get_option( self::STATS_OPTION_PREFIX . $list_id, self::getDefaultStats() );
+		if ( ! is_array( $stats ) ) {
+			$stats = self::getDefaultStats();
+		}
+
+		$stats['batches_submitted'] ++;
+		$stats['batches_checking']  = ( $stats['batches_checking'] ?? 0 ) + 1;
+
+		update_option( self::STATS_OPTION_PREFIX . $list_id, $stats );
 	}
 
 	/**
@@ -163,6 +258,85 @@ class MigrationBatch {
 	 */
 	protected static function releaseSchedulingLock( string $list_id ): void {
 		delete_transient( self::getSchedulingLockKey( $list_id ) );
+	}
+
+	/**
+	 * Try to consume one rate-limit token for batch submission.
+	 *
+	 * Uses a per-list token bucket stored in an option. Tokens refill continuously
+	 * at the configured rate (default 5 per 60 seconds). Returns true if a token
+	 * was consumed, false if the bucket is empty (caller should back off).
+	 *
+	 * @param string $list_id
+	 *
+	 * @return bool True if a token was consumed and submission may proceed.
+	 */
+	protected static function consumeRateToken( string $list_id ): bool {
+		$capacity    = (int) apply_filters( 'wlmi_batch_rate_limit', 5 );
+		$refill_rate = $capacity / 60.0;
+		$option_key  = 'wlmi_rate_bucket_' . $list_id;
+		$bucket      = get_option( $option_key );
+
+		if ( ! is_array( $bucket ) || ! isset( $bucket['tokens'], $bucket['last_refill'] ) ) {
+			$bucket = [
+				'tokens'      => max( 0, $capacity - 1 ),
+				'last_refill' => microtime( true ),
+			];
+			update_option( $option_key, $bucket, false );
+
+			return true;
+		}
+
+		$now     = microtime( true );
+		$elapsed = max( 0, $now - (float) $bucket['last_refill'] );
+		$tokens  = min( (float) $capacity, (float) $bucket['tokens'] + $elapsed * $refill_rate );
+
+		if ( $tokens < 1.0 ) {
+			return false;
+		}
+
+		$bucket['tokens']      = $tokens - 1.0;
+		$bucket['last_refill'] = $now;
+		update_option( $option_key, $bucket, false );
+
+		return true;
+	}
+
+	/**
+	 * Check whether the number of in-flight batch checks exceeds the cap.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return bool True if the cap is reached and submission should wait.
+	 */
+	protected static function isInFlightCapReached( string $list_id ): bool {
+		$max_in_flight = (int) apply_filters( 'wlmi_max_in_flight_batches', 5 );
+		$stats         = get_option( self::STATS_OPTION_PREFIX . $list_id, self::getDefaultStats() );
+
+		if ( ! is_array( $stats ) ) {
+			return false;
+		}
+
+		return ( (int) ( $stats['batches_checking'] ?? 0 ) ) >= $max_in_flight;
+	}
+
+	/**
+	 * Decrement the batches_checking counter when a batch check is abandoned.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return void
+	 */
+	protected static function markBatchAbandoned( string $list_id ): void {
+		$stats = get_option( self::STATS_OPTION_PREFIX . $list_id, self::getDefaultStats() );
+		if ( ! is_array( $stats ) ) {
+			$stats = self::getDefaultStats();
+		}
+
+		$stats['batches_checking'] = max( 0, (int) ( $stats['batches_checking'] ?? 0 ) - 1 );
+		$stats['last_updated_at']  = time();
+
+		update_option( self::STATS_OPTION_PREFIX . $list_id, $stats );
 	}
 
 	/**
@@ -349,29 +523,42 @@ class MigrationBatch {
 			return;
 		}
 
+		if ( self::isInFlightCapReached( $list_id ) || ! self::consumeRateToken( $list_id ) ) {
+			self::scheduleNextBatch( $list_id, $start_id, 30 );
+			return;
+		}
+
 		$response = MailchimpHelper::startBatch( $settings, $operations );
 		if ( empty( $response ) ) {
 			wc_get_logger()->add( 'wlmi', 'Mailchimp batch migration failed for start_id: ' . $start_id );
 			return;
 		}
 
-		if ( isset( $response->id ) ) {
-			$batch_id   = (string) $response->id;
+		$batch_id = isset( $response->id ) ? (string) $response->id : '';
+
+		if ( ! empty( $batch_id ) ) {
 			$option_key = 'wlmi_migration_batches_' . $list_id;
 			$batch_ids  = get_option( $option_key, [] );
 			if ( ! in_array( $batch_id, $batch_ids, true ) ) {
 				$batch_ids[] = $batch_id;
 				update_option( $option_key, $batch_ids );
 			}
+
+			self::recordBatchSubmitted( $list_id );
+			self::scheduleBatchCheck( $list_id, $batch_id, 0 );
 		}
 
-		if ( $count >= $limit && $last_id > 0 ) {
+		$has_more = $count >= $limit && $last_id > 0;
+		if ( $has_more ) {
 			self::scheduleNextBatch( $list_id, $last_id );
-			return;
+		} else {
+			$flag = get_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
+			if ( is_array( $flag ) ) {
+				$flag['first_batch_scheduled'] = false;
+				$flag['all_batches_submitted'] = true;
+				update_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id, $flag );
+			}
 		}
-
-		delete_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
-		self::completeMigrationRun( $list_id, $settings );
 	}
 
 	/**
@@ -436,184 +623,207 @@ class MigrationBatch {
 	}
 
 	/**
-	 * Get consolidated migration status for a list.
+	 * Schedule a batch result check with exponential backoff.
 	 *
-	 * Aggregates status across all Mailchimp batches and Action Scheduler state
-	 * for the given list_id.
+	 * @param string $list_id
+	 * @param string $batch_id
+	 * @param int    $attempt
+	 *
+	 * @return void
+	 */
+	protected static function scheduleBatchCheck( string $list_id, string $batch_id, int $attempt ): void {
+		if ( ! function_exists( 'as_schedule_single_action' ) ) {
+			return;
+		}
+
+		$delay    = min( 60 * pow( 2, $attempt ), 600 );
+		$job_args = [ [
+			'list_id'  => $list_id,
+			'batch_id' => $batch_id,
+			'attempt'  => $attempt,
+		] ];
+
+		as_schedule_single_action( time() + $delay, self::BATCH_CHECK_HOOK, $job_args, self::BATCH_CHECK_GROUP );
+	}
+
+	/**
+	 * Action Scheduler callback: check one Mailchimp batch result,
+	 * accumulate stats, and process errors incrementally.
+	 *
+	 * @param array $job_data
+	 *
+	 * @return void
+	 */
+	public static function checkBatchResult( $job_data ) {
+		if ( empty( $job_data ) || ! is_array( $job_data ) ) {
+			return;
+		}
+
+		$list_id  = isset( $job_data['list_id'] ) ? (string) $job_data['list_id'] : '';
+		$batch_id = isset( $job_data['batch_id'] ) ? (string) $job_data['batch_id'] : '';
+		$attempt  = isset( $job_data['attempt'] ) ? (int) $job_data['attempt'] : 0;
+
+		if ( empty( $list_id ) || empty( $batch_id ) ) {
+			return;
+		}
+
+		WC::setTimeLimit( 120 );
+
+		$settings = SettingsHelper::gets();
+		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
+			wc_get_logger()->add( 'wlmi', 'Settings missing during batch check for ' . $batch_id );
+			return;
+		}
+
+		$max_attempts = (int) apply_filters( 'wlmi_max_batch_check_attempts', 15 );
+		$status       = MailchimpHelper::getBatchStatus( $settings, $batch_id );
+
+		if ( empty( $status ) ) {
+			if ( $attempt < $max_attempts ) {
+				self::scheduleBatchCheck( $list_id, $batch_id, $attempt + 1 );
+			} else {
+				wc_get_logger()->add( 'wlmi', 'Gave up checking batch ' . $batch_id . ' after ' . $attempt . ' attempts (no response).' );
+				self::markBatchAbandoned( $list_id );
+				self::maybeFinalizeMigration( $list_id, $settings );
+			}
+			return;
+		}
+
+		$batch_status = isset( $status->status ) ? strtolower( (string) $status->status ) : '';
+		$in_progress  = in_array( $batch_status, [ 'pending', 'started', 'running', 'finalizing', 'pre-processing' ], true );
+
+		if ( $in_progress ) {
+			if ( $attempt < $max_attempts ) {
+				self::scheduleBatchCheck( $list_id, $batch_id, $attempt + 1 );
+			} else {
+				wc_get_logger()->add( 'wlmi', 'Gave up checking batch ' . $batch_id . ' after ' . $attempt . ' attempts (still ' . $batch_status . ').' );
+				self::markBatchAbandoned( $list_id );
+				self::maybeFinalizeMigration( $list_id, $settings );
+			}
+			return;
+		}
+
+		$total    = isset( $status->total_operations ) ? (int) $status->total_operations : 0;
+		$finished = isset( $status->finished_operations ) ? (int) $status->finished_operations : 0;
+		$errored  = isset( $status->errored_operations ) ? (int) $status->errored_operations : 0;
+
+		self::accumulateStats( $list_id, $total, $finished, $errored );
+
+		if ( $errored > 0 && ! empty( $status->response_body_url ) ) {
+			self::processErrorsForBatch( $list_id, $batch_id, (string) $status->response_body_url );
+		}
+
+		self::maybeFinalizeMigration( $list_id, $settings );
+	}
+
+	/**
+	 * Check if the migration run is fully complete and clean up if so.
+	 *
+	 * @param string $list_id
+	 * @param array  $settings
+	 *
+	 * @return void
+	 */
+	protected static function maybeFinalizeMigration( string $list_id, array $settings ): void {
+		$flag = get_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
+		if ( empty( $flag ) || ! is_array( $flag ) ) {
+			return;
+		}
+
+		$all_submitted = ! empty( $flag['all_batches_submitted'] );
+		if ( ! $all_submitted ) {
+			return;
+		}
+
+		$stats = get_option( self::STATS_OPTION_PREFIX . $list_id, self::getDefaultStats() );
+		if ( ! is_array( $stats ) ) {
+			$stats = self::getDefaultStats();
+		}
+
+		$still_checking = (int) ( $stats['batches_checking'] ?? 0 );
+		if ( $still_checking > 0 ) {
+			return;
+		}
+
+		delete_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
+		delete_option( 'wlmi_rate_bucket_' . $list_id );
+		wc_get_logger()->add( 'wlmi', 'Migration run finalized for list ' . $list_id . '. Batches completed: ' . ( $stats['batches_completed'] ?? 0 ) );
+
+		self::completeMigrationRun( $list_id, $settings );
+	}
+
+	/**
+	 * Get consolidated migration status for a list (pure local read — no API calls).
 	 *
 	 * @param string $list_id  The Mailchimp list ID.
-	 * @param array  $settings Plugin settings including API credentials.
+	 * @param array  $settings Plugin settings (unused, kept for backward compat).
 	 *
 	 * @return array Consolidated status data.
 	 */
 	public static function getConsolidatedStatus( string $list_id, array $settings ): array {
-		$default_last_checked_at = Util::getCurrentTimeFormatted();
+		$last_checked_at = Util::getCurrentTimeFormatted();
 
 		$default = [
 			'state'                 => 'no_runs',
 			'total_operations'      => 0,
-			'finished_operations'  => 0,
-			'success_operations'   => 0,
-			'errored_operations'   => 0,
+			'finished_operations'   => 0,
+			'success_operations'    => 0,
+			'errored_operations'    => 0,
 			'batch_count'           => 0,
 			'has_any_pending'       => false,
 			'has_first_pending'     => false,
 			'first_error_file_url'  => null,
 			'failed_users_csv_path' => null,
 			'csv_processing_status' => 'not_started',
-			'last_checked_at'       => $default_last_checked_at,
+			'last_checked_at'       => $last_checked_at,
 		];
 
 		if ( empty( $list_id ) ) {
 			return $default;
 		}
 
-		// Get Action Scheduler pending state
-		$pending_state                = self::getPendingMigrationState( $list_id );
-		$default['has_any_pending']   = $pending_state['has_any_batch_pending'];
-		$default['has_first_pending'] = $pending_state['has_first_batch_pending'];
+		$pending_state = self::getPendingMigrationState( $list_id );
+		$stats         = get_option( self::STATS_OPTION_PREFIX . $list_id );
+		$has_stats     = is_array( $stats ) && ( (int) ( $stats['batches_submitted'] ?? 0 ) ) > 0;
 
-		// Get stored batch IDs
-		$option_key = 'wlmi_migration_batches_' . $list_id;
-		$batch_ids  = get_option( $option_key, [] );
-
-		if ( empty( $batch_ids ) || ! is_array( $batch_ids ) ) {
-			// No batches yet, but check if any are pending in Action Scheduler
-			if ( $default['has_any_pending'] ) {
-				$default['state'] = 'in_progress';
-			}
-
+		if ( ! $has_stats && ! $pending_state['has_any_batch_pending'] ) {
 			return $default;
 		}
 
-		// Aggregate status from all batches (limit to most recent 50 to avoid overload)
-		$batch_ids = array_slice( $batch_ids, - 50 );
-
-		$total_operations    = 0;
-		$finished_operations = 0;
-		$errored_operations  = 0;
-		$batch_count         = 0;
-		$first_error_url     = null;
-		$raw_states          = [];
-
-		foreach ( $batch_ids as $batch_id ) {
-			$batch_id = (string) $batch_id;
-			$status   = MailchimpHelper::getBatchStatus( $settings, $batch_id );
-
-			if ( empty( $status ) ) {
-				continue;
-			}
-
-			$batch_count ++;
-			$total_operations    += isset( $status->total_operations ) ? (int) $status->total_operations : 0;
-			$finished_operations += isset( $status->finished_operations ) ? (int) $status->finished_operations : 0;
-			$errored_operations  += isset( $status->errored_operations ) ? (int) $status->errored_operations : 0;
-
-			if ( isset( $status->status ) ) {
-				$raw_states[] = strtolower( (string) $status->status );
-			}
-
-			// Capture first error file URL
-			if ( $first_error_url === null && isset( $status->response_body_url ) && ! empty( $status->response_body_url ) ) {
-				$batch_errored = isset( $status->errored_operations ) ? (int) $status->errored_operations : 0;
-				if ( $batch_errored > 0 ) {
-					$first_error_url = $status->response_body_url;
-				}
-			}
+		if ( ! $has_stats ) {
+			$stats = self::getDefaultStats();
 		}
 
-		$success_operations = max( 0, $finished_operations - $errored_operations );
+		$total_operations    = (int) ( $stats['total_operations'] ?? 0 );
+		$finished_operations = (int) ( $stats['finished_operations'] ?? 0 );
+		$errored_operations  = (int) ( $stats['errored_operations'] ?? 0 );
+		$success_operations  = max( 0, $finished_operations - $errored_operations );
+		$batches_completed   = (int) ( $stats['batches_completed'] ?? 0 );
 
-		// Determine overall state
-		$state = 'completed';
-		if ( $default['has_any_pending'] ) {
+		$is_running = $pending_state['has_any_batch_pending'] || ( (int) ( $stats['batches_checking'] ?? 0 ) ) > 0;
+
+		if ( $is_running ) {
 			$state = 'in_progress';
-		} elseif ( ! empty( $raw_states ) ) {
-			// Check if any batch is still running/pending on Mailchimp side
-			$in_progress_states = [ 'pending', 'started', 'running', 'finalizing' ];
-			foreach ( $raw_states as $rs ) {
-				if ( in_array( $rs, $in_progress_states, true ) ) {
-					$state = 'in_progress';
-					break;
-				}
-			}
+		} elseif ( $has_stats ) {
+			$state = 'completed';
+		} else {
+			$state = 'no_runs';
 		}
 
-		// Check for CSV file and process if needed
-		$csv_path         = null;
-		$csv_status       = 'not_started';
-		$log_base_dir     = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-		$expected_csv_path = $log_base_dir . $list_id . '/failed-users.csv';
-		$status_key       = 'wlmi_csv_processing_status_' . $list_id;
+		$csv_path   = null;
+		$csv_status = 'not_started';
 
-		// If all batches completed and there are errors, check/process CSV
 		if ( $state === 'completed' && $errored_operations > 0 ) {
-			// Check if CSV already exists
+			$log_base_dir      = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+			$expected_csv_path = $log_base_dir . $list_id . '/failed-users.csv';
+
 			if ( FileHelper::exists( $expected_csv_path ) && FileHelper::isReadable( $expected_csv_path ) ) {
 				$csv_path   = $expected_csv_path;
 				$csv_status = 'completed';
-				// Clear any processing status
-				delete_transient( $status_key );
 			} else {
-				// Check processing status
-				$processing_status = get_transient( $status_key );
-
-				if ( $processing_status === 'processing' ) {
-					// Check if Action Scheduler job is still pending/running
-					if ( function_exists( 'as_get_scheduled_actions' ) ) {
-						$csv_actions = as_get_scheduled_actions( [
-							'hook'   => 'wlmi_process_csv_errors',
-							'args'   => [ [ 'list_id' => $list_id ] ],
-							'status' => class_exists( 'ActionScheduler_Store' ) ? [
-								\ActionScheduler_Store::STATUS_PENDING,
-								\ActionScheduler_Store::STATUS_RUNNING,
-							] : [ 'pending', 'running' ],
-						] );
-
-						if ( empty( $csv_actions ) ) {
-							// Job completed but CSV missing - mark as failed
-							$csv_status = 'failed';
-							delete_transient( $status_key );
-						} else {
-							$csv_status = 'processing';
-						}
-					} else {
-						$csv_status = 'processing';
-					}
-				} elseif ( $processing_status === 'failed' ) {
-					$csv_status = 'failed';
-				} else {
-					// No processing started yet - trigger async processing
-					if ( function_exists( 'as_schedule_single_action' ) && function_exists( 'as_next_scheduled_action' ) ) {
-						$job_args = [ [ 'list_id' => $list_id ] ];
-						$group    = 'wlmi_csv_processing';
-
-						if ( false === as_next_scheduled_action( 'wlmi_process_csv_errors', $job_args, $group ) ) {
-							as_schedule_single_action( time(), 'wlmi_process_csv_errors', $job_args, $group );
-							set_transient( $status_key, 'processing', HOUR_IN_SECONDS );
-							$csv_status = 'processing';
-						}
-					} else {
-						// Fallback to synchronous processing if Action Scheduler unavailable
-						WC::setTimeLimit( 300 );
-						$csv_path = self::processErrorsToCSV( $list_id, $settings );
-						if ( $csv_path !== false ) {
-							$csv_status = 'completed';
-						} else {
-							$csv_status = 'failed';
-						}
-					}
-				}
+				$csv_status = 'not_started';
 			}
 		}
-
-		// Only expose error links when migration is fully completed.
-		// This prevents premature display of raw error files while batches are still running.
-		if ( $state !== 'completed' ) {
-			$first_error_url = null;
-		}
-
-		$last_checked_at = Util::getCurrentTimeFormatted();
 
 		return [
 			'state'                 => $state,
@@ -621,10 +831,10 @@ class MigrationBatch {
 			'finished_operations'   => $finished_operations,
 			'success_operations'    => $success_operations,
 			'errored_operations'    => $errored_operations,
-			'batch_count'           => $batch_count,
-			'has_any_pending'       => $default['has_any_pending'],
-			'has_first_pending'     => $default['has_first_pending'],
-			'first_error_file_url'  => $first_error_url,
+			'batch_count'           => $batches_completed,
+			'has_any_pending'       => $pending_state['has_any_batch_pending'],
+			'has_first_pending'     => $pending_state['has_first_batch_pending'],
+			'first_error_file_url'  => null,
 			'failed_users_csv_path' => $csv_path,
 			'csv_processing_status' => $csv_status,
 			'last_checked_at'       => $last_checked_at,
@@ -632,322 +842,185 @@ class MigrationBatch {
 	}
 
 	/**
-	 * Download error tar.gz files from Mailchimp for batches with errors.
+	 * Download and process errors for a single Mailchimp batch, appending results to CSV.
 	 *
-	 * @param string $list_id  The Mailchimp list ID.
-	 * @param array  $settings Plugin settings including API credentials.
-	 *
-	 * @return array Array of local tar.gz file paths.
-	 */
-	public static function downloadErrorFiles( string $list_id, array $settings ): array {
-		$downloaded_files = [];
-
-		if ( empty( $list_id ) ) {
-			return $downloaded_files;
-		}
-
-		// Get all batch IDs for this list
-		$option_key = 'wlmi_migration_batches_' . $list_id;
-		$batch_ids  = get_option( $option_key, [] );
-
-		if ( empty( $batch_ids ) || ! is_array( $batch_ids ) ) {
-			return $downloaded_files;
-		}
-
-		// Create log directory structure: wp-content/wlmi-migration-logs/{list_id}/{batch_id}/
-		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-		wp_mkdir_p( $log_base_dir );
-
-		foreach ( $batch_ids as $batch_id ) {
-			$batch_id = (string) $batch_id;
-			$status   = MailchimpHelper::getBatchStatus( $settings, $batch_id );
-
-			if ( empty( $status ) ) {
-				continue;
-			}
-
-			// Check if batch has errors
-			$errored_operations = isset( $status->errored_operations ) ? (int) $status->errored_operations : 0;
-			if ( $errored_operations > 0 && isset( $status->response_body_url ) && ! empty( $status->response_body_url ) ) {
-				// Create batch-specific directory
-				$batch_log_dir = $log_base_dir . $list_id . '/' . $batch_id . '/';
-				wp_mkdir_p( $batch_log_dir );
-
-				// Download the error file
-				$download_url = $status->response_body_url;
-				$response     = wp_remote_get( $download_url, [
-					'timeout'   => 300,
-					'sslverify' => true,
-				] );
-
-				if ( is_wp_error( $response ) ) {
-					wc_get_logger()->add( 'wlmi',
-						'Failed to download batch error file for batch_id ' . $batch_id . ': ' . $response->get_error_message() );
-					continue;
-				}
-
-				$file_content  = wp_remote_retrieve_body( $response );
-				$response_code = wp_remote_retrieve_response_code( $response );
-
-				if ( $response_code !== 200 || empty( $file_content ) ) {
-					wc_get_logger()->add( 'wlmi',
-						'Failed to download batch error file for batch_id ' . $batch_id . ': HTTP ' . $response_code );
-					continue;
-				}
-
-				// Save the file
-				$file_path = $batch_log_dir . $batch_id . '-response.tar.gz';
-				$saved     = FileHelper::putContent( $file_path, $file_content );
-
-				if ( $saved === false ) {
-					wc_get_logger()->add( 'wlmi',
-						'Failed to save batch error file for batch_id ' . $batch_id . ' to ' . $file_path );
-				} else {
-					$downloaded_files[] = $file_path;
-					wc_get_logger()->add( 'wlmi',
-						'Downloaded batch error file for batch_id ' . $batch_id . ' (' . $errored_operations . ' errors) to ' . $file_path );
-				}
-			}
-		}
-
-		return $downloaded_files;
-	}
-
-	/**
-	 * Process CSV errors in background (Action Scheduler callback).
-	 *
-	 * @param array $job_data Job data containing list_id.
+	 * @param string $list_id
+	 * @param string $batch_id
+	 * @param string $response_body_url
 	 *
 	 * @return void
 	 */
-	public static function processCSVErrorsBackground( $job_data ) {
-		if ( empty( $job_data ) || ! is_array( $job_data ) ) {
+	protected static function processErrorsForBatch( string $list_id, string $batch_id, string $response_body_url ): void {
+		$log_base_dir  = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		$batch_log_dir = $log_base_dir . $list_id . '/' . $batch_id . '/';
+		wp_mkdir_p( $batch_log_dir );
+
+		$response = wp_remote_get( $response_body_url, [
+			'timeout'   => 120,
+			'sslverify' => true,
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			wc_get_logger()->add( 'wlmi', 'Failed to download error file for batch ' . $batch_id . ': ' . $response->get_error_message() );
 			return;
 		}
 
-		$list_id = isset( $job_data['list_id'] ) ? (string) $job_data['list_id'] : '';
-		if ( empty( $list_id ) ) {
+		$file_content  = wp_remote_retrieve_body( $response );
+		$response_code = wp_remote_retrieve_response_code( $response );
+
+		if ( $response_code !== 200 || empty( $file_content ) ) {
+			wc_get_logger()->add( 'wlmi', 'Failed to download error file for batch ' . $batch_id . ': HTTP ' . $response_code );
 			return;
 		}
 
-		$settings = SettingsHelper::gets();
-		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
-			wc_get_logger()->add( 'wlmi', 'Mailchimp settings missing for CSV processing.' );
-			$status_key = 'wlmi_csv_processing_status_' . $list_id;
-			set_transient( $status_key, 'failed', HOUR_IN_SECONDS );
+		$tar_gz_path = $batch_log_dir . $batch_id . '-response.tar.gz';
+		if ( ! FileHelper::putContent( $tar_gz_path, $file_content ) ) {
+			wc_get_logger()->add( 'wlmi', 'Failed to save error file for batch ' . $batch_id );
+			return;
+		}
+		unset( $file_content );
 
+		$errors = self::extractErrorsFromTarGz( $tar_gz_path );
+
+		self::cleanupDirectory( $batch_log_dir );
+
+		if ( empty( $errors ) ) {
 			return;
 		}
 
-		$status_key = 'wlmi_csv_processing_status_' . $list_id;
-		set_transient( $status_key, 'processing', HOUR_IN_SECONDS * 2 );
-
-		WC::setTimeLimit( 300 );
-		$csv_path = self::processErrorsToCSV( $list_id, $settings );
-
-		if ( $csv_path !== false ) {
-			set_transient( $status_key, 'completed', HOUR_IN_SECONDS );
-			wc_get_logger()->add( 'wlmi', 'CSV processing completed for list_id ' . $list_id . ' at ' . $csv_path );
-		} else {
-			set_transient( $status_key, 'failed', HOUR_IN_SECONDS );
-			wc_get_logger()->add( 'wlmi', 'CSV processing failed for list_id ' . $list_id );
-		}
+		self::appendErrorsToCSV( $list_id, $errors );
 	}
 
 	/**
-	 * Process downloaded error files and generate CSV.
+	 * Extract error entries from a Mailchimp response tar.gz file.
 	 *
-	 * @param string $list_id  The Mailchimp list ID.
-	 * @param array  $settings Plugin settings including API credentials.
+	 * @param string $tar_gz_path
 	 *
-	 * @return string|false CSV file path on success, false on failure.
+	 * @return array Associative array of email => reason.
 	 */
-	public static function processErrorsToCSV( string $list_id, array $settings ) {
-		if ( empty( $list_id ) ) {
-			return false;
-		}
-
-		// Get downloaded tar.gz files
-		$tar_gz_files = self::downloadErrorFiles( $list_id, $settings );
-
-		if ( empty( $tar_gz_files ) ) {
-			return false;
-		}
-
-		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
-
-		// Ensure directory exists
-		wp_mkdir_p( dirname( $csv_path ) );
-
-		$errors = []; // Associative array keyed by email for deduplication
-
-		// Process each tar.gz file
-		foreach ( $tar_gz_files as $tar_gz_path ) {
-			if ( ! FileHelper::exists( $tar_gz_path ) ) {
-				continue;
-			}
-
-			// Extract tar.gz: use splitbrain/php-archive library
-			$extract_dir = dirname( $tar_gz_path ) . DIRECTORY_SEPARATOR . 'extracted_' . basename( $tar_gz_path, '.tar.gz' );
-			$extracted   = false;
-
-			try {
-				// Ensure the tar.gz file exists and is readable
-				if ( ! FileHelper::exists( $tar_gz_path ) || ! FileHelper::isReadable( $tar_gz_path ) ) {
-					throw new \Exception( 'Tar.gz file does not exist or is not readable' );
-				}
-
-				// Clean up extract directory if it exists (handle dirty state from previous runs)
-				self::cleanupDirectory( $extract_dir );
-
-				// Create fresh extract directory
-				if ( ! wp_mkdir_p( $extract_dir ) ) {
-					throw new \Exception( 'Failed to create extraction directory' );
-				}
-
-				// Get real path to handle spaces and symlinks properly
-				$real_tar_gz_path = realpath( $tar_gz_path );
-				if ( $real_tar_gz_path === false ) {
-					throw new \Exception( 'Cannot resolve real path for tar.gz file' );
-				}
-
-				// Use splitbrain/php-archive to extract tar.gz directly (handles gzip automatically)
-				$tar = new Tar();
-				$tar->open( $real_tar_gz_path );
-
-				// Extract to directory (library handles gzip decompression automatically)
-				$extracted_files = $tar->extract( $extract_dir );
-				$tar->close();
-
-				$extracted = true;
-			} catch ( \Exception $e ) {
-				// Clean up failed extraction directory
-				self::cleanupDirectory( $extract_dir );
-				continue;
-			}
-
-			if ( ! $extracted ) {
-				continue;
-			}
-
-			// Find all JSON files in extracted directory (top-level and in subdirs when extractTo preserved structure)
-			$json_files = [];
-			if ( FileHelper::isDir( $extract_dir ) ) {
-				$dir_iter  = new \RecursiveDirectoryIterator( $extract_dir, \RecursiveDirectoryIterator::SKIP_DOTS );
-				$flat_iter = new \RecursiveIteratorIterator( $dir_iter );
-				foreach ( $flat_iter as $file ) {
-					if ( $file->isFile() && strtolower( $file->getExtension() ) === 'json' ) {
-						$json_files[] = $file->getPathname();
-					}
-				}
-			}
-
-			foreach ( $json_files as $json_file ) {
-				if ( ! FileHelper::exists( $json_file ) || ! FileHelper::isReadable( $json_file ) ) {
-					continue;
-				}
-
-				$json_content = FileHelper::getContent( $json_file );
-				if ( empty( $json_content ) ) {
-					continue;
-				}
-
-				$operations = json_decode( $json_content, true );
-
-				if ( ! is_array( $operations ) ) {
-					continue;
-				}
-
-				// Mailchimp may return a single operation object per file; normalize to array of operations
-				if ( isset( $operations['status_code'] ) || isset( $operations['operation_id'] ) ) {
-					$operations = [ $operations ];
-				}
-
-				// Process each operation
-				foreach ( $operations as $operation ) {
-					if ( ! is_array( $operation ) ) {
-						continue;
-					}
-
-					$status_code = isset( $operation['status_code'] ) ? (int) $operation['status_code'] : 0;
-
-					// Only process errors (status_code 400)
-					if ( $status_code !== 400 ) {
-						continue;
-					}
-
-					$email = isset( $operation['operation_id'] ) ? (string) $operation['operation_id'] : '';
-					if ( empty( $email ) ) {
-						continue;
-					}
-
-					// Extract reason from response
-					$reason = 'Unknown error';
-					if ( isset( $operation['response'] ) && ! empty( $operation['response'] ) ) {
-						$response_obj = json_decode( $operation['response'], true );
-						if ( is_array( $response_obj ) && isset( $response_obj['detail'] ) ) {
-							$reason = (string) $response_obj['detail'];
-						}
-					}
-
-					// Deduplicate by email (keep first occurrence)
-					if ( ! isset( $errors[ $email ] ) ) {
-						$errors[ $email ] = $reason;
-					}
-				}
-			}
-
-			// Clean up extracted directory after processing (remove temporary files)
-			self::cleanupDirectory( $extract_dir );
-		}
-
-		// If no errors found, return false
-		if ( empty( $errors ) ) {
-			return false;
-		}
-
-		// Generate CSV using ParseCsv library
-		if ( ! class_exists( '\ParseCsv\Csv' ) ) {
-			return false;
-		}
+	protected static function extractErrorsFromTarGz( string $tar_gz_path ): array {
+		$errors      = [];
+		$extract_dir = dirname( $tar_gz_path ) . DIRECTORY_SEPARATOR . 'extracted_' . basename( $tar_gz_path, '.tar.gz' );
 
 		try {
-			$csv             = new \ParseCsv\Csv();
-			$csv->titles     = [ 'email_address', 'reason' ];
-			$csv->delimiter  = ';';
-			$csv->enclose_all = true;
+			self::cleanupDirectory( $extract_dir );
 
-			// Convert errors array to CSV rows format
-			$csv_rows = [];
-			foreach ( $errors as $email => $reason ) {
-				$csv_rows[] = [
-					'email_address' => $email,
-					'reason'        => $reason,
-				];
+			if ( ! wp_mkdir_p( $extract_dir ) ) {
+				return $errors;
 			}
 
-			// Save CSV file (false = overwrite, single write)
-			$saved = $csv->save( $csv_path, $csv_rows, false );
+			$real_path = realpath( $tar_gz_path );
+			if ( $real_path === false ) {
+				return $errors;
+			}
 
-			if ( $saved ) {
-				// Cleanup individual batch directories now that the consolidated CSV is created
-				foreach ( $tar_gz_files as $tar_gz_path ) {
-					self::cleanupDirectory( dirname( $tar_gz_path ) );
+			$tar = new Tar();
+			$tar->open( $real_path );
+			$tar->extract( $extract_dir );
+			$tar->close();
+		} catch ( \Exception $e ) {
+			self::cleanupDirectory( $extract_dir );
+			return $errors;
+		}
+
+		if ( ! FileHelper::isDir( $extract_dir ) ) {
+			return $errors;
+		}
+
+		$dir_iter  = new \RecursiveDirectoryIterator( $extract_dir, \RecursiveDirectoryIterator::SKIP_DOTS );
+		$flat_iter = new \RecursiveIteratorIterator( $dir_iter );
+
+		foreach ( $flat_iter as $file ) {
+			if ( ! $file->isFile() || strtolower( $file->getExtension() ) !== 'json' ) {
+				continue;
+			}
+
+			$json_content = FileHelper::getContent( $file->getPathname() );
+			if ( empty( $json_content ) ) {
+				continue;
+			}
+
+			$operations = json_decode( $json_content, true );
+			if ( ! is_array( $operations ) ) {
+				continue;
+			}
+
+			if ( isset( $operations['status_code'] ) || isset( $operations['operation_id'] ) ) {
+				$operations = [ $operations ];
+			}
+
+			foreach ( $operations as $operation ) {
+				if ( ! is_array( $operation ) ) {
+					continue;
 				}
 
-				return $csv_path;
-			} else {
-				return false;
+				$status_code = isset( $operation['status_code'] ) ? (int) $operation['status_code'] : 0;
+				if ( $status_code < 400 ) {
+					continue;
+				}
+
+				$email = isset( $operation['operation_id'] ) ? (string) $operation['operation_id'] : '';
+				if ( empty( $email ) ) {
+					continue;
+				}
+
+				$reason = 'Unknown error';
+				if ( isset( $operation['response'] ) && ! empty( $operation['response'] ) ) {
+					$response_obj = json_decode( $operation['response'], true );
+					if ( is_array( $response_obj ) && isset( $response_obj['detail'] ) ) {
+						$reason = (string) $response_obj['detail'];
+					}
+				}
+
+				if ( ! isset( $errors[ $email ] ) ) {
+					$errors[ $email ] = $reason;
+				}
 			}
-		} catch ( \Exception $e ) {
-			return false;
 		}
+
+		self::cleanupDirectory( $extract_dir );
+
+		return $errors;
+	}
+
+	/**
+	 * Append error rows to the failed-users CSV for a list.
+	 *
+	 * @param string $list_id
+	 * @param array  $errors Associative array of email => reason.
+	 *
+	 * @return void
+	 */
+	protected static function appendErrorsToCSV( string $list_id, array $errors ): void {
+		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		$csv_dir      = $log_base_dir . $list_id . '/';
+		$csv_path     = $csv_dir . 'failed-users.csv';
+
+		wp_mkdir_p( $csv_dir );
+
+		$is_new = ! file_exists( $csv_path );
+
+		//phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$handle = fopen( $csv_path, 'a' );
+		if ( $handle === false ) {
+			wc_get_logger()->add( 'wlmi', 'Failed to open CSV for appending: ' . $csv_path );
+			return;
+		}
+
+		if ( $is_new ) {
+			fputcsv( $handle, [ 'email_address', 'reason' ], ';' );
+		}
+
+		foreach ( $errors as $email => $reason ) {
+			fputcsv( $handle, [ $email, $reason ], ';' );
+		}
+
+		//phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		fclose( $handle );
 	}
 
 	/**
 	 * Recursively remove a directory and all its contents.
-	 * Handles dirty state cleanup before extraction and post-extraction cleanup.
 	 *
 	 * @param string $dir Directory path to remove.
 	 *

@@ -306,14 +306,8 @@ class Api {
 					'queued'  => true,
 				] );
 			} else {
-				// No sync is running, so queue the first batch of a fresh run immediately.
-				// Purge old CSV report before starting a new sync to prevent stale data
-				$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-				$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
-				if ( FileHelper::exists( $csv_path ) ) {
-					FileHelper::delete( $csv_path );
-				}
-				
+				// No sync is running — startMigrationRun (inside scheduleBatchesForList) resets
+				// stats and deletes old CSV automatically.
 				$result = MigrationBatch::scheduleBatchesForList( $list_id, $settings );
 				$message = __( 'Synchronization run started successfully. The first batch has been queued.', 'wp-loyalty-mailchimp-integration' );
 				$queued  = false;
