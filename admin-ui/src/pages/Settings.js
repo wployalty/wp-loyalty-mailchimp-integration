@@ -312,8 +312,8 @@ const Settings = () => {
                 saveDisabled={saveDisabled}
                 syncAction={handlePerformSync}
                 syncLoading={syncLoading}
-                showSync={!!(settings.list_id && settings.migration_choice)}
-                syncDisabled={false}
+                showSync={!!(savedListId && isConnected)}
+                syncDisabled={isDirty}
             />
 
             <div className="flex gap-x-6 items-stretch w-full min-h-[590px]">
