@@ -9,10 +9,82 @@ use WLMI\App\Helper\WC;
 use WLMI\App\Helper\Settings as SettingsHelper;
 use WLMI\App\Helper\File as FileHelper;
 use WLMI\App\Controller\MigrationBatch;
+use WLMI\App\Controller\Sync;
 
 defined( 'ABSPATH' ) or die;
 
 class Api {
+	/**
+	 * Clean up migration data and scheduled actions.
+	 *
+	 * @param string|null $list_id Optional list ID to clean up specific migration data.
+	 *
+	 * @return void
+	 */
+	public static function cleanupMigrationData( ?string $list_id = null ): void {
+		if ( ! empty( $list_id ) ) {
+			self::cleanupMigrationDataForList( $list_id );
+		} else {
+			$settings = SettingsHelper::gets();
+			if ( ! empty( $settings['list_id'] ) ) {
+				self::cleanupMigrationDataForList( $settings['list_id'] );
+			}
+		}
+
+		self::unscheduleAllMigrationActions();
+		self::unscheduleAllSyncActions();
+	}
+
+	/**
+	 * Clean up migration data for a specific list.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return void
+	 */
+	protected static function cleanupMigrationDataForList( string $list_id ): void {
+		delete_option( 'wlmi_migration_batches_' . $list_id );
+		delete_option( 'wlmi_migration_stats_' . $list_id );
+		delete_option( 'wlmi_migration_running_' . $list_id );
+		delete_option( 'wlmi_rate_bucket_' . $list_id );
+		delete_option( 'wlmi_sync_after_migration_' . $list_id );
+		delete_transient( 'wlmi_scheduling_lock_' . $list_id );
+
+		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
+		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
+		if ( FileHelper::exists( $csv_path ) ) {
+			FileHelper::delete( $csv_path );
+		}
+	}
+
+	/**
+	 * Unschedule all migration batch actions.
+	 *
+	 * @return void
+	 */
+	protected static function unscheduleAllMigrationActions(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( MigrationBatch::MIGRATION_ACTION_HOOK, [], MigrationBatch::MIGRATION_ACTION_GROUP );
+		as_unschedule_all_actions( MigrationBatch::BATCH_CHECK_HOOK, [], MigrationBatch::BATCH_CHECK_GROUP );
+	}
+
+	/**
+	 * Unschedule all sync actions.
+	 *
+	 * @return void
+	 */
+	protected static function unscheduleAllSyncActions(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( Sync::SYNC_ACTION_HOOK, [], Sync::SYNC_ACTION_GROUP );
+		as_unschedule_all_actions( Sync::DELETE_ACTION_HOOK, [], Sync::DELETE_ACTION_GROUP );
+	}
+
 	/**
 	 * Connect and persist Mailchimp API settings.
 	 *
@@ -66,6 +138,8 @@ class Api {
 		$settings['list_id']                     = '';
 		$settings['migration_choice']            = '';
 		update_option( 'wlmi_settings', $settings );
+
+		self::cleanupMigrationData();
 
 		SettingsHelper::clearCache();
 		MailchimpHelper::clearConnectionCache();

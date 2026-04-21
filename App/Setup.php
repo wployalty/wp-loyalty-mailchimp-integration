@@ -5,6 +5,7 @@ namespace WLMI\App;
 use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Plugin;
 use WLMI\App\Helper\Settings as SettingsHelper;
+use WLMI\App\Controller\Admin\Api;
 
 defined( 'ABSPATH' ) or die;
 
@@ -34,10 +35,10 @@ class Setup {
 	}
 
 	/**
-	 * Run plugin activation scripts.
+	 * Run plugin deactivation scripts.
 	 */
 	public static function deactivate() {
-		// silence is golden
+		Api::cleanupMigrationData();
 	}
 
 	/**

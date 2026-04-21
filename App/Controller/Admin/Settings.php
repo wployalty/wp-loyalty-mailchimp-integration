@@ -8,6 +8,7 @@ use WLMI\App\Helper\Validation;
 use WLMI\App\Helper\WC;
 use WLMI\App\Helper\Settings as SettingsHelper;
 use WLMI\App\Controller\MigrationBatch;
+use WLMI\App\Controller\Admin\Api;
 
 defined( 'ABSPATH' ) or die;
 
@@ -52,14 +53,32 @@ class Settings {
 			$existing_settings = [];
 		}
 
-		// Merge incoming settings on top of existing, but PRESERVE the verified API key and server.
-		// These should only be managed via connectMailchimp/disconnectMailchimp.
-		$api_key = isset($existing_settings['api_key']) ? (string)$existing_settings['api_key'] : '';
-		$server = isset($existing_settings['server']) ? (string)$existing_settings['server'] : '';
-		
-		$settings = array_merge( $existing_settings, $settings );
-		$settings['api_key'] = $api_key;
-		$settings['server'] = $server;
+		$incoming_api_key = isset( $settings['api_key'] ) ? trim( (string) $settings['api_key'] ) : '';
+		$existing_api_key = isset( $existing_settings['api_key'] ) ? (string) $existing_settings['api_key'] : '';
+		$api_key_changed = ! empty( $incoming_api_key ) && $incoming_api_key !== $existing_api_key;
+
+		if ( $api_key_changed ) {
+			$dash_pos = strpos( $incoming_api_key, '-' );
+			if ( $dash_pos === false || $dash_pos === strlen( $incoming_api_key ) - 1 ) {
+				wp_send_json_error( [ 'message' => __( 'Invalid API key format', 'wp-loyalty-mailchimp-integration' ) ] );
+			}
+			$new_server = substr( $incoming_api_key, $dash_pos + 1 );
+			$is_connected = MailchimpHelper::checkConnection( $incoming_api_key, $new_server );
+			if ( ! $is_connected ) {
+				wp_send_json_error( [ 'message' => __( 'Connection failed with the provided API key', 'wp-loyalty-mailchimp-integration' ) ] );
+			}
+
+			Api::cleanupMigrationData();
+
+			$settings['api_key'] = $incoming_api_key;
+			$settings['server']  = $new_server;
+			$settings['list_id']          = '';
+			$settings['migration_choice'] = '';
+		} else {
+			$settings = array_merge( $existing_settings, $settings );
+			$settings['api_key'] = $existing_api_key;
+			$settings['server']  = isset( $existing_settings['server'] ) ? (string) $existing_settings['server'] : '';
+		}
 
 		$validate_data = Validation::validateSettingsTab( [ 'settings' => $settings ] );
 
@@ -75,6 +94,10 @@ class Settings {
 					'settings.migration_choice' => [ __( 'This field is required', 'wp-loyalty-mailchimp-integration' ) ],
 				],
 			] );
+		}
+
+		if ( $list_transition && ! $api_key_changed ) {
+			Api::cleanupMigrationData( $old_list_id );
 		}
 
 		if ( $list_transition ) {
