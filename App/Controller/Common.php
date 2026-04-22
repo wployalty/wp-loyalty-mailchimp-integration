@@ -103,9 +103,7 @@ class Common {
 		$localize_data = [
 			'ajax_url'            => admin_url( 'admin-ajax.php' ),
 			//nonce
-			'reset_setting_nonce' => wp_create_nonce( 'reset_settings' ),
 			'local_data_nonce'    => wp_create_nonce( 'local_data' ),
-			'render_page_nonce'   => wp_create_nonce( 'render_page_nonce' ),
 		];
 		wp_localize_script( $localize_name, 'wlmi_settings_form', $localize_data );
 	}

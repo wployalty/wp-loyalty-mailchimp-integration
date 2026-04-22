@@ -48,8 +48,8 @@ const App = () => {
             : (
                 <div className={` w-full `}>
                     <div className={`flex items-baseline  gap-x-3`}>
-                        <p className={`text-2xl text-dark font-bold`}>{appState.plugin_name}</p>
-                        <span className={`text-base text-extra_light font-medium`}>{appState.version}</span>
+                        <p className={`text-2xl text-dark font-bold`}>{labels?.common?.plugin_name || ""}</p>
+                        <span className={`text-base text-extra_light font-medium`}>{labels?.common?.version || ""}</span>
                     </div>
                     <CommonContext.Provider value={
                         {
