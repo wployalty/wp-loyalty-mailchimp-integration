@@ -11,7 +11,7 @@
  * Requires Plugins: woocommerce, wp-loyalty-rules
  * Requires at least: 6.0
  * WC requires at least: 10.0
- * WC tested up to: 10.2
+ * WC tested up to: 10.7
  * Author URI: https://wployalty.net/
  * License: GPLv2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -86,10 +86,10 @@ if ( ! wlmi_is_loyalty_active() || ! ( (int) version_compare( wlmi_get_wlr_plugi
 }
 
 defined( 'WLMI_PLUGIN_NAME' ) or define( 'WLMI_PLUGIN_NAME', 'WPLoyalty - Mailchimp Integration' );
-defined( 'WLMI_MINIMUM_PHP_VERSION' ) or define( 'WLMI_MINIMUM_PHP_VERSION', '7.4.0' );
+defined( 'WLMI_MINIMUM_PHP_VERSION' ) or define( 'WLMI_MINIMUM_PHP_VERSION', '7.4' );
 defined( 'WLMI_MINIMUM_WP_VERSION' ) or define( 'WLMI_MINIMUM_WP_VERSION', '6.0' );
 defined( 'WLMI_MINIMUM_WC_VERSION' ) or define( 'WLMI_MINIMUM_WC_VERSION', '10.0' );
-defined( 'WLMI_MINIMUM_WLR_VERSION' ) or define( 'WLMI_MINIMUM_WLR_VERSION', '1.4.4' );
+defined( 'WLMI_MINIMUM_WLR_VERSION' ) or define( 'WLMI_MINIMUM_WLR_VERSION', '1.4.5' );
 defined( 'WLMI_PLUGIN_VERSION' ) or define( 'WLMI_PLUGIN_VERSION', '1.0.0' );
 defined( 'WLMI_PLUGIN_SLUG' ) or define( 'WLMI_PLUGIN_SLUG', 'wp-loyalty-mailchimp-integration' );
 defined( 'WLMI_PLUGIN_FILE' ) or define( 'WLMI_PLUGIN_FILE', __FILE__ );

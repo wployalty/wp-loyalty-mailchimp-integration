@@ -5,7 +5,7 @@ Tags: wployalty, mailchimp, woocommerce, loyalty, points
 Requires at least: 6.0
 Tested up to: 6.9
 WC requires at least: 10.0
-WC tested up to: 10.2
+WC tested up to: 10.7
 Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later
