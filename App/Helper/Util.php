@@ -5,36 +5,19 @@ defined( 'ABSPATH' ) || exit;
 
 class Util {
 	/**
-	 * Check if the request is coming from the admin side.
+	 * Get the admin settings page URL for this plugin.
+	 * The page/tab to load is determined by the optional param (hash route).
 	 *
-	 * @return bool Returns true if the request is from the admin side, false otherwise.
+	 * @param string $page Optional. Hash route segment to open (e.g. 'license', 'settings'). Results in #/license, #/settings.
+	 * @return string Full URL to the plugin admin page, with optional hash.
 	 */
-	public static function isAdminSide() {
-		return Input::get( 'is_admin_side' ) === 'true';
-	}
+	public static function getSettingsPageUrl( string $page = '' ): string {
+		$url = admin_url( 'admin.php?' . http_build_query( [ 'page' => WLMI_PLUGIN_SLUG ] ) );
+		if ( $page !== '' ) {
+			$url .= '#/' . ltrim( $page, '/' );
+		}
 
-	/**
-	 * Render a template file with the provided data.
-	 *
-	 * @param string $file The path to the template file to render.
-	 * @param array $data An associative array containing data to be used in the template.
-	 * @param bool $display Whether to display the rendered content immediately or return it.
-	 *
-	 * @return string|void The rendered content of the template file if $display is false, void otherwise.
-	 */
-	public static function renderTemplate( string $file, array $data = [], bool $display = true ) {
-		$content = '';
-		if ( file_exists( $file ) ) {
-			ob_start();
-			extract( $data );
-			include $file;
-			$content = ob_get_clean();
-		}
-		if ( ! $display ) {
-			return $content;
-		}
-		//phpcs:ignore
-		echo $content;
+		return $url;
 	}
 
 	/**
@@ -68,10 +51,14 @@ class Util {
 		if ( (int) $date != $date ) {
 			return $date;
 		}
-		//return $this->convert_utc_to_wp_time(date('Y-m-d H:i:s', $date), $format);
-		$converted_time = Util::convertUTCtoWP( date( 'Y-m-d H:i:s', $date ), $format );
-		if ( apply_filters( 'wlr_translate_display_date', false ) ) {
-			$time           = strtotime( $converted_time );
+		$converted_time = self::convertUTCtoWP( gmdate( 'Y-m-d H:i:s', $date ), $format );
+		if ( apply_filters( 'wlmi_translate_display_date', true ) ) {
+			$datetime = \DateTime::createFromFormat( $format, $converted_time );
+			if ( $datetime !== false ) {
+				$time = $datetime->getTimestamp();
+			} else {
+				$time = strtotime( $converted_time );
+			}
 			$converted_time = date_i18n( $format, $time );
 		}
 
@@ -100,8 +87,56 @@ class Util {
 		} catch ( \Exception $e ) {
 			$converted_time = $datetime;
 		}
-
 		return $converted_time;
+	}
+
+	/**
+	 * Format UTC datetime string using WordPress date and time format settings.
+	 *
+	 * @param string $datetime_utc The UTC date/time string to format.
+	 *
+	 * @return string Formatted date/time string using WordPress date_format and time_format, or original string if conversion fails.
+	 */
+	public static function formatDateTimeWP( $datetime_utc ) {
+		if ( empty( $datetime_utc ) ) {
+			return '';
+		}
+
+		try {
+			// Convert UTC to WP timezone first
+			$wp_datetime = self::convertUTCtoWP( $datetime_utc, 'Y-m-d H:i:s' );
+			
+			// Get WordPress date and time format
+			$date_format = get_option( 'date_format', 'Y-m-d' );
+			$time_format = get_option( 'time_format', 'H:i:s' );
+			$wp_format   = $date_format . ' ' . $time_format;
+			
+			// Convert to timestamp for date_i18n
+			$timestamp = strtotime( $wp_datetime );
+			if ( $timestamp === false ) {
+				return $datetime_utc;
+			}
+			
+			// Format using WordPress date/time format with i18n support
+			return date_i18n( $wp_format, $timestamp );
+		} catch ( \Exception $e ) {
+			return $datetime_utc;
+		}
+	}
+
+	/**
+	 * Get current time formatted for display using WordPress date and time format settings.
+	 *
+	 * Gets the current time in UTC, formats it using WordPress date/time format,
+	 * or falls back to current WordPress time if UTC is unavailable.
+	 *
+	 * @return string Formatted current time using WordPress date_format and time_format.
+	 */
+	public static function getCurrentTimeFormatted() {
+		$current_time_utc = current_time( 'mysql', true );
+		return ! empty( $current_time_utc ) 
+			? self::formatDateTimeWP( $current_time_utc )
+			: current_time( 'mysql' );
 	}
 
 	/**
@@ -121,7 +156,7 @@ class Util {
 		}
 		$date             = new \DateTime( $date );
 		$converted_format = $date->format( $format );
-		if ( apply_filters( 'wlr_translate_display_date', false ) ) {
+		if ( apply_filters( 'wlmi_translate_display_date', false ) ) {
 			$time             = strtotime( $converted_format );
 			$converted_format = date_i18n( $format, $time );
 		}

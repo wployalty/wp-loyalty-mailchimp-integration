@@ -9,9 +9,9 @@
  * Text Domain: wp-loyalty-mailchimp-integration
  * Domain Path: /i18n/languages/
  * Requires Plugins: woocommerce, wp-loyalty-rules
- * Requires at least: 4.9.0
- * WC requires at least: 6.5
- * WC tested up to: 9.8
+ * Requires at least: 6.0
+ * WC requires at least: 10.0
+ * WC tested up to: 10.2
  * Author URI: https://wployalty.net/
  * License: GPLv2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -29,21 +29,21 @@ add_action( 'before_woocommerce_init', function () {
 		FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__ );
 	}
 } );
-if ( ! function_exists( 'getWLRPluginVersion' ) ) {
-	function getWLRPluginVersion() {
+if ( ! function_exists( 'wlmi_get_wlr_plugin_version' ) ) {
+	function wlmi_get_wlr_plugin_version() {
 		if ( defined( 'WLR_PLUGIN_VERSION' ) ) {
 			return WLR_PLUGIN_VERSION;
 		}
-		$version = getWLMILoyaltyVersion(false);
+		$version = wlmi_get_loyalty_version(false);
 		if ( $version == '1.0.0' ) {
-			$version = getWLMILoyaltyVersion();
+			$version = wlmi_get_loyalty_version();
 		}
 
 		return $version;
 	}
 }
-if ( ! function_exists( 'getWLMILoyaltyVersion' ) ) {
-	function getWLMILoyaltyVersion( bool $force = true ) {
+if ( ! function_exists( 'wlmi_get_loyalty_version' ) ) {
+	function wlmi_get_loyalty_version( bool $force = true ) {
 		if ( ! function_exists( 'get_plugins' ) ) {
 			require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 		}
@@ -57,7 +57,7 @@ if ( ! function_exists( 'getWLMILoyaltyVersion' ) ) {
 		if ( ! file_exists( WP_PLUGIN_DIR . '/' . $plugin_file ) ) {
 			return '1.0.0';
 		}
-		$active_plugins = apply_filters( 'active_plugins', get_option( 'active_plugins', [] ) );
+		$active_plugins = apply_filters( 'wlmi_active_plugins', get_option( 'active_plugins', [] ) );
 		if ( is_multisite() ) {
 			$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', [] ) );
 		}
@@ -69,9 +69,9 @@ if ( ! function_exists( 'getWLMILoyaltyVersion' ) ) {
 		return $plugin_folder[ $file ]['Version'] ?? '1.0.0';
 	}
 }
-if ( ! function_exists( 'isWLMILoyaltyActive' ) ) {
-	function isWLMILoyaltyActive() {
-		$active_plugins = apply_filters( 'active_plugins', get_option( 'active_plugins', [] ) );
+if ( ! function_exists( 'wlmi_is_loyalty_active' ) ) {
+	function wlmi_is_loyalty_active() {
+		$active_plugins = apply_filters( 'wlmi_active_plugins', get_option( 'active_plugins', [] ) );
 		if ( is_multisite() ) {
 			$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', [] ) );
 		}
@@ -81,15 +81,15 @@ if ( ! function_exists( 'isWLMILoyaltyActive' ) ) {
 	}
 }
 
-if ( ! isWLMILoyaltyActive() || ! ( (int) version_compare( getWLRPluginVersion(), '1.4.3', '>=' ) > 0 ) ) {
+if ( ! wlmi_is_loyalty_active() || ! ( (int) version_compare( wlmi_get_wlr_plugin_version(), '1.4.4', '>=' ) > 0 ) ) {
 	return;
 }
 
 defined( 'WLMI_PLUGIN_NAME' ) or define( 'WLMI_PLUGIN_NAME', 'WPLoyalty - Mailchimp Integration' );
 defined( 'WLMI_MINIMUM_PHP_VERSION' ) or define( 'WLMI_MINIMUM_PHP_VERSION', '7.4.0' );
-defined( 'WLMI_MINIMUM_WP_VERSION' ) or define( 'WLMI_MINIMUM_WP_VERSION', '4.9' );
-defined( 'WLMI_MINIMUM_WC_VERSION' ) or define( 'WLMI_MINIMUM_WC_VERSION', '6.0' );
-defined( 'WLMI_MINIMUM_WLR_VERSION' ) or define( 'WLMI_MINIMUM_WLR_VERSION', '1.4.3' );
+defined( 'WLMI_MINIMUM_WP_VERSION' ) or define( 'WLMI_MINIMUM_WP_VERSION', '6.0' );
+defined( 'WLMI_MINIMUM_WC_VERSION' ) or define( 'WLMI_MINIMUM_WC_VERSION', '10.0' );
+defined( 'WLMI_MINIMUM_WLR_VERSION' ) or define( 'WLMI_MINIMUM_WLR_VERSION', '1.4.4' );
 defined( 'WLMI_PLUGIN_VERSION' ) or define( 'WLMI_PLUGIN_VERSION', '1.0.0' );
 defined( 'WLMI_PLUGIN_SLUG' ) or define( 'WLMI_PLUGIN_SLUG', 'wp-loyalty-mailchimp-integration' );
 defined( 'WLMI_PLUGIN_FILE' ) or define( 'WLMI_PLUGIN_FILE', __FILE__ );

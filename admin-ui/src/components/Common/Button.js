@@ -21,11 +21,11 @@ const Button = ({
     return (
         <button
             id={id}
+            type="button"
             className={`antialiased font-medium no-underline  flex items-center justify-center space-x-2 outline-none tracking-normal whitespace-nowrap wp-loyalty-button ${shadow && "hover:shadow-lg "}
              ${bgColor} ${textStyle} ${padding} ${others}
-              ${outlineStyles} cursor-pointer min-w-max rounded-md ${disabled ? `not-allowed` : "cursor-pointer"}`}
-            onClick={disabled ? () => {
-            } : click}
+              ${outlineStyles} min-w-max rounded-md ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+            onClick={disabled ? () => {} : click}
             title={title}
             style={{background: `${extraStyle} `}}
         >

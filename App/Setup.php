@@ -2,7 +2,10 @@
 
 namespace WLMI\App;
 
+use WLMI\App\Helper\Mailchimp as MailchimpHelper;
 use WLMI\App\Helper\Plugin;
+use WLMI\App\Helper\Settings as SettingsHelper;
+use WLMI\App\Controller\Admin\Api;
 
 defined( 'ABSPATH' ) or die;
 
@@ -24,14 +27,18 @@ class Setup {
 	 */
 	public static function activate() {
 		Plugin::checkDependencies( true );
+		$settings = SettingsHelper::gets();
+		if ( ! empty( $settings['list_id'] ) ) {
+			MailchimpHelper::ensureMergeFields( $settings['list_id'], $settings );
+		}
 
 	}
 
 	/**
-	 * Run plugin activation scripts.
+	 * Run plugin deactivation scripts.
 	 */
 	public static function deactivate() {
-		// silence is golden
+		Api::cleanupMigrationData();
 	}
 
 	/**

@@ -65,22 +65,6 @@ class WC {
 	}
 
 	/**
-	 * Check if the site security is valid.
-	 *
-	 * @param string $nonce_name The name of the nonce to be validated.
-	 *
-	 * @return bool True if site security is valid, false otherwise.
-	 */
-	public static function isSiteSecurityValid( string $nonce_name = '' ): bool {
-		$wdr_nonce = Input::get( 'wlmi_nonce' );
-		if ( ! self::verifyNonce( $wdr_nonce, $nonce_name ) ) {
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
 	 * Create nonce for woocommerce.
 	 *
 	 * @param string $action
@@ -93,6 +77,17 @@ class WC {
 		}
 
 		return wp_create_nonce( $action );
+	}
+
+	/**
+	 * Wrapper for set_time_limit to see if it is enabled.
+	 *
+	 * @param int $limit Time limit.
+	 */
+	public static function setTimeLimit( $limit = 0 ) {
+		if ( function_exists( 'set_time_limit' ) && false === strpos( (string) ini_get( 'disable_functions' ), 'set_time_limit' ) && ! ini_get( 'safe_mode' ) ) { // phpcs:ignore PHPCompatibility.IniDirectives.RemovedIniDirectives.safe_modeDeprecatedRemoved
+			@set_time_limit( $limit ); // @codingStandardsIgnoreLine
+		}
 	}
 
 	/**
@@ -111,36 +106,17 @@ class WC {
 			if ( $timezone_string ) {
 				return $timezone_string;
 			}
-			$offset   = (float) get_option( 'gmt_offset' );
-			$hours    = (int) $offset;
-			$minutes  = ( $offset - $hours );
-			$sign     = ( $offset < 0 ) ? '-' : '+';
-			$abs_hour = abs( $hours );
-			$abs_mins = abs( $minutes * 60 );
+			$offset    = (float) get_option( 'gmt_offset' );
+			$hours     = (int) $offset;
+			$minutes   = ( $offset - $hours );
+			$sign      = ( $offset < 0 ) ? '-' : '+';
+			$abs_hour  = abs( $hours );
+			$abs_mins  = abs( $minutes * 60 );
+			$tz_offset = sprintf( '%s%02d:%02d', $sign, $abs_hour, $abs_mins );
 
-			return sprintf( '%s%02d:%02d', $sign, $abs_hour, $abs_mins );
+			return $tz_offset;
 		}
 
 		return wp_timezone_string();
-	}
-
-    /**
-	 * Retrieves the email of the logged-in user.
-	 *
-	 * @return string The email of the logged-in user. If no user is logged in or the user email is empty, returns an empty string.
-	 */
-	public static function getLoginUserEmail() {
-		$login_user = self::getLoginUser();
-
-		return ! empty( $login_user ) ? $login_user->user_email : '';
-	}
-
-	/**
-	 * Retrieves the current logged-in user.
-	 *
-	 * @return mixed Returns the current logged-in user object if function wp_get_current_user exists, otherwise returns false.
-	 */
-	public static function getLoginUser() {
-		return function_exists( 'wp_get_current_user' ) ? wp_get_current_user() : false;
 	}
 }

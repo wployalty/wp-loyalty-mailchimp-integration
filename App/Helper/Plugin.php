@@ -78,7 +78,7 @@ class Plugin {
 	 * @return bool
 	 */
 	public static function isActive( string $plugin_path ): bool {
-		$active_plugins = apply_filters( 'active_plugins', get_option( 'active_plugins', [] ) );
+		$active_plugins = apply_filters( 'wlmi_active_plugins', get_option( 'active_plugins', [] ) );
 		if ( is_multisite() ) {
 			$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', [] ) );
 		}
@@ -161,7 +161,7 @@ class Plugin {
 		if ( ! file_exists( WP_PLUGIN_DIR . '/' . $plugin_file ) ) {
 			return '1.0.0';
 		}
-		$active_plugins = apply_filters( 'active_plugins', get_option( 'active_plugins', [] ) );
+		$active_plugins = apply_filters( 'wlmi_active_plugins', get_option( 'active_plugins', [] ) );
 		if ( is_multisite() ) {
 			$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', [] ) );
 		}

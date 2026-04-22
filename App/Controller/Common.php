@@ -3,7 +3,6 @@
 namespace WLMI\App\Controller;
 
 use WLMI\App\Helper\Input;
-use WLMI\App\Helper\Loyalty;
 use WLMI\App\Helper\Util;
 use WLMI\App\Helper\WC;
 
@@ -50,7 +49,7 @@ class Common {
 		if ( ! WC::hasAdminPrivilege() ) {
 			return;
 		}
-		$params = apply_filters( 'wlmi_before_launcher_admin_page', [] );
+		$params = apply_filters( 'wlmi_before_mailchimp_admin_page', [] );
 		wc_get_template( 'main.php', $params, WLMI_PLUGIN_SLUG, WLMI_PLUGIN_DIR . '/App/View/Admin/' );
 	}
 
@@ -82,6 +81,7 @@ class Common {
 
 		wp_enqueue_style( WLMI_PLUGIN_SLUG . '-wlr-font', WLR_PLUGIN_URL . 'Assets/Site/Css/wlr-fonts' . $suffix . '.css', [], WLR_PLUGIN_VERSION . $add_cache_fix );
 		wp_enqueue_style( WLR_PLUGIN_SLUG . '-alertify', WLR_PLUGIN_URL . 'Assets/Admin/Css/alertify.css', [], WLR_PLUGIN_VERSION . $add_cache_fix );
+        // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 		wp_enqueue_script( WLR_PLUGIN_SLUG . '-alertify', WLR_PLUGIN_URL . 'Assets/Admin/Js/alertify.js', [ 'jquery' ], WLR_PLUGIN_VERSION . $add_cache_fix );
 		$common_path   = WLMI_PLUGIN_DIR . '/assets/admin/js/dist';
 		$js_files      = Util::getDirFileLists( $common_path );
@@ -93,6 +93,7 @@ class Common {
 			$js_file_url  = WLMI_PLUGIN_URL . $path;
 			if ( $js_file_name == 'main.bundle.js' ) {
 				$localize_name = $js_name;
+                // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 				wp_register_script( $js_name, $js_file_url, [ 'jquery' ], WLMI_PLUGIN_VERSION . $add_cache_fix );
 				wp_enqueue_script( $js_name );
 			}
@@ -102,9 +103,7 @@ class Common {
 		$localize_data = [
 			'ajax_url'            => admin_url( 'admin-ajax.php' ),
 			//nonce
-			'reset_setting_nonce' => wp_create_nonce( 'reset_settings' ),
 			'local_data_nonce'    => wp_create_nonce( 'local_data' ),
-			'render_page_nonce'   => wp_create_nonce( 'render_page_nonce' ),
 		];
 		wp_localize_script( $localize_name, 'wlmi_settings_form', $localize_data );
 	}
@@ -125,8 +124,8 @@ class Common {
 		}
 		update_option( 'wlmi_is_launcher_plugin_activated', true );
 		$add_ons['wp-loyalty-mailchimp-integration'] = [
-			'name'         => esc_html__( 'WPLoyalty - Launcher', 'wp-loyalty-mailchimp-integration' ),
-			'description'  => __( 'Launcher widget for WPLoyalty. Let your customers easily discover your loyalty rewards.', 'wp-loyalty-mailchimp-integration' ),
+			'name'         => esc_html__( 'WPLoyalty - Mailchimp Integration', 'wp-loyalty-mailchimp-integration' ),
+			'description'  => __( 'The add-on integrates WPLoyalty with your Mailchimp.', 'wp-loyalty-mailchimp-integration' ),
 			'icon_url'     => \Wlr\App\Helpers\Util::getImageUrl( 'wp-loyalty-mailchimp-integration' ),
 			'page_url'     => '{addon_page}',
 			'document_url' => '',

@@ -5,7 +5,10 @@
   "license": "GPL-2.0-or-later",
   "require": {
     "php": "7.4.*",
-    "yahnis-elsts/plugin-update-checker": "^v5.4"
+    "mailchimp/marketing": "^3.0",
+    "yahnis-elsts/plugin-update-checker": "^v5.4",
+    "splitbrain/php-archive": "^1.4",
+    "vlucas/valitron": "^1.4.6"
   },
   "autoload": {
     "psr-4": {

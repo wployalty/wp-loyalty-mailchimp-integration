@@ -14,7 +14,7 @@ const App = () => {
     const [commonState, setCommonState] = React.useState({});
     React.useLayoutEffect(() => {
         const params = {
-            action: "wlmi_launcher_local_data",
+            action: "wlmi_admin_local_data",
             wlmi_nonce: wlmi_settings_form.local_data_nonce,
         }
         postRequest(params).then((json) => {
@@ -22,7 +22,7 @@ const App = () => {
             if (resJSON.success === true && resJSON.data !== null && resJSON.data !== {}) {
                 setAppState(resJSON.data);
                 let labelParams = {
-                    action: "wlmi_get_launcher_labels",
+                    action: "wlmi_get_labels",
                     wlmi_nonce: resJSON.data.common_nonce,
                 }
                 postRequest(labelParams).then(json => {
@@ -48,8 +48,8 @@ const App = () => {
             : (
                 <div className={` w-full `}>
                     <div className={`flex items-baseline  gap-x-3`}>
-                        <p className={`text-2xl text-dark font-bold`}>{appState.plugin_name}</p>
-                        <span className={`text-base text-extra_light font-medium`}>{appState.version}</span>
+                        <p className={`text-2xl text-dark font-bold`}>{labels?.common?.plugin_name || ""}</p>
+                        <span className={`text-base text-extra_light font-medium`}>{labels?.common?.version || ""}</span>
                     </div>
                     <CommonContext.Provider value={
                         {

@@ -2,7 +2,7 @@ import React from 'react';
 import Button from "./Button";
 import {CommonContext, UiLabelContext} from "../../Context";
 
-const TitleActionContainer = ({title, resetAction, saveAction}) => {
+const TitleActionContainer = ({ title, saveAction, saveDisabled = false, showSave = true, syncAction, syncDisabled = false, syncLoading = false, showSync = false }) => {
     const labels = React.useContext(UiLabelContext);
     const {appState} = React.useContext(CommonContext);
 
@@ -21,22 +21,26 @@ const TitleActionContainer = ({title, resetAction, saveAction}) => {
             >
                 {labels.common.back_to_loyalty}
             </Button>
-            <Button
-                icon={<i className={`wlr wlrf-reset text-md font-medium color-important`}/>}
-                outline={true}
-                bgColor={"bg-white"}
-                outlineStyle={"border-light-border"}
-                textStyle={"text-light"}
-                click={resetAction}
-            >
-                {labels.common.reset}
-            </Button>
-            <Button
-                icon={<i className={`wlr wlrf-save text-md font-medium color-important `}/>}
-                click={saveAction}
-            >
-                {labels.common.save}
-            </Button>
+
+            {showSync && (
+                <Button
+                    click={syncAction}
+                    disabled={syncDisabled || syncLoading}
+                    icon={<i className={`wlr wlrf-refresh text-md font-medium color-important ${syncLoading ? 'animate-spin' : ''}`} />}
+                >
+                    {labels.settings?.perform_sync || "Perform Sync"}
+                </Button>
+            )}
+
+            {showSave && (
+                <Button
+                    icon={<i className={`wlr wlrf-save text-md font-medium color-important `}/>}
+                    click={saveAction}
+                    disabled={saveDisabled}
+                >
+                    {labels.common.save}
+                </Button>
+            )}
         </div>
     </div>
 };
