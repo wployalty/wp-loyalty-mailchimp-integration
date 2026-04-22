@@ -7,7 +7,6 @@
     "php": "7.4.*",
     "mailchimp/marketing": "^3.0",
     "yahnis-elsts/plugin-update-checker": "^v5.4",
-    "parsecsv/php-parsecsv": "^1.0",
     "splitbrain/php-archive": "^1.4",
     "vlucas/valitron": "^1.4.6"
   },
