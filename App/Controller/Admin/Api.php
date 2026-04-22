@@ -67,8 +67,8 @@ class Api {
 			return;
 		}
 
-		as_unschedule_all_actions( MigrationBatch::MIGRATION_ACTION_HOOK, [], MigrationBatch::MIGRATION_ACTION_GROUP );
-		as_unschedule_all_actions( MigrationBatch::BATCH_CHECK_HOOK, [], MigrationBatch::BATCH_CHECK_GROUP );
+		as_unschedule_all_actions( MigrationBatch::MIGRATION_ACTION_HOOK );
+		as_unschedule_all_actions( MigrationBatch::BATCH_CHECK_HOOK );
 	}
 
 	/**
@@ -81,8 +81,8 @@ class Api {
 			return;
 		}
 
-		as_unschedule_all_actions( Sync::SYNC_ACTION_HOOK, [], Sync::SYNC_ACTION_GROUP );
-		as_unschedule_all_actions( Sync::DELETE_ACTION_HOOK, [], Sync::DELETE_ACTION_GROUP );
+		as_unschedule_all_actions( Sync::SYNC_ACTION_HOOK );
+		as_unschedule_all_actions( Sync::DELETE_ACTION_HOOK );
 	}
 
 	/**
