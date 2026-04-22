@@ -16,19 +16,9 @@ class Sync {
 	const SYNC_ACTION_HOOK = 'wlmi_sync_single_member';
 
 	/**
-	 * Queue hook name for single member deletes.
-	 */
-	const DELETE_ACTION_HOOK = 'wlmi_delete_single_member';
-
-	/**
 	 * Action Scheduler group for member syncs.
 	 */
 	const SYNC_ACTION_GROUP = 'wlmi_member_sync';
-
-	/**
-	 * Action Scheduler group for member deletes.
-	 */
-	const DELETE_ACTION_GROUP = 'wlmi_member_delete';
 
 	/**
 	 * Sync member data on points balance changes.
@@ -108,23 +98,20 @@ class Sync {
 			return $status;
 		}
 
-		if ( ! function_exists( 'as_enqueue_async_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
-			self::log( 'Action Scheduler not available for member delete queue.' );
+		$list_id = (string) $settings['list_id'];
 
-			return $status;
+		// Best-effort: prevent stale queued sync running after the delete.
+		if ( function_exists( 'as_next_scheduled_action' ) ) {
+			$job_data = [
+				'user_email' => $user_email,
+				'list_id'    => $list_id,
+			];
+			$job_args = [ $job_data ];
+			self::unschedulePendingMemberSync( $job_args );
 		}
 
-		$job_data = [
-			'user_email' => $user_email,
-			'list_id'    => (string) $settings['list_id'],
-		];
-		$job_args = [ $job_data ];
-
-		self::unschedulePendingMemberSync( $job_args );
-
-		if ( false === as_next_scheduled_action( self::DELETE_ACTION_HOOK, $job_args, self::DELETE_ACTION_GROUP ) ) {
-			as_enqueue_async_action( self::DELETE_ACTION_HOOK, $job_args, self::DELETE_ACTION_GROUP );
-		}
+		// Delete immediately to avoid races (e.g. user deleted before an import/sync runs).
+		MailchimpHelper::deleteListMember( $list_id, $user_email );
 
 		return $status;
 	}
@@ -178,35 +165,6 @@ class Sync {
 	}
 
 	/**
-	 * Process a queued member delete.
-	 *
-	 * @param array $job_data
-	 *
-	 * @return void
-	 */
-	public static function processQueuedMemberDelete( $job_data ) {
-		if ( empty( $job_data ) || ! is_array( $job_data ) ) {
-			return;
-		}
-
-		$user_email = isset( $job_data['user_email'] ) ? sanitize_email( $job_data['user_email'] ) : '';
-		$list_id    = isset( $job_data['list_id'] ) ? (string) $job_data['list_id'] : '';
-		if ( empty( $user_email ) || empty( $list_id ) ) {
-			return;
-		}
-
-		$settings = SettingsHelper::gets();
-		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) || empty( $settings['list_id'] ) ) {
-			return;
-		}
-		if ( (string) $settings['list_id'] !== $list_id ) {
-			return;
-		}
-
-		MailchimpHelper::deleteListMember( $list_id, $user_email );
-	}
-
-	/**
 	 * Fetch the current loyalty user record by email.
 	 *
 	 * @param string $user_email
@@ -230,6 +188,9 @@ class Sync {
 	 * @return void
 	 */
 	protected static function unschedulePendingMemberSync( array $job_args ) {
+		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
+			return;
+		}
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( self::SYNC_ACTION_HOOK, $job_args, self::SYNC_ACTION_GROUP );
 

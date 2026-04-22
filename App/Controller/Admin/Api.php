@@ -82,7 +82,6 @@ class Api {
 		}
 
 		as_unschedule_all_actions( Sync::SYNC_ACTION_HOOK );
-		as_unschedule_all_actions( Sync::DELETE_ACTION_HOOK );
 	}
 
 	/**
