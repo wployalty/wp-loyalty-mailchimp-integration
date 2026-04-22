@@ -49,7 +49,7 @@ class Common {
 		if ( ! WC::hasAdminPrivilege() ) {
 			return;
 		}
-		$params = apply_filters( 'wlmi_before_launcher_admin_page', [] );
+		$params = apply_filters( 'wlmi_before_mailchimp_admin_page', [] );
 		wc_get_template( 'main.php', $params, WLMI_PLUGIN_SLUG, WLMI_PLUGIN_DIR . '/App/View/Admin/' );
 	}
 
