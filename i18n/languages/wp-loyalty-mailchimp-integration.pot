@@ -9,13 +9,14 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-01-30T00:25:13+05:30\n"
+"POT-Creation-Date: 2026-04-22T09:13:18+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.11.0\n"
+"X-Generator: WP-CLI 2.10.0\n"
 "X-Domain: wp-loyalty-mailchimp-integration\n"
 
 #. Plugin Name of the plugin
 #: wp-loyalty-mailchimp-integration.php
+#: App/Controller/Common.php:127
 msgid "WPLoyalty - Mailchimp Integration"
 msgstr ""
 
@@ -39,806 +40,322 @@ msgstr ""
 msgid "https://wployalty.net/"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:19
-#: App/Controller/Admin/Labels.php:56
+#: App/Controller/Admin/Api.php:94
+#: App/Controller/Admin/Api.php:131
+#: App/Controller/Admin/Api.php:156
+#: App/Controller/Admin/Api.php:250
+#: App/Controller/Admin/Api.php:353
+#: App/Controller/Admin/Labels.php:17
+#: App/Controller/Admin/Labels.php:40
 #: App/Controller/Admin/Settings.php:23
-#: App/Controller/Admin/Settings.php:36
-#: App/Controller/Guest.php:19
-#: App/Controller/Guest.php:39
-#: App/Controller/Member.php:24
-#: App/Controller/Member.php:43
-#: App/Controller/Member.php:106
-#: App/Controller/Member.php:149
+#: App/Controller/Admin/Settings.php:39
 msgid "Basic check failed"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:61
-#: App/Controller/Admin/Labels.php:132
-#: App/Controller/Admin/Labels.php:220
-msgid "Primary"
+#: App/Controller/Admin/Api.php:98
+msgid "API Key is required"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:62
-#: App/Controller/Admin/Labels.php:133
-#: App/Controller/Admin/Labels.php:221
-msgid "Secondary"
+#: App/Controller/Admin/Api.php:103
+#: App/Controller/Admin/Settings.php:63
+msgid "Invalid API key format"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:65
-#: App/Controller/Admin/Labels.php:130
-msgid "White"
+#: App/Controller/Admin/Api.php:110
+msgid "Connection failed"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:66
-#: App/Controller/Admin/Labels.php:131
-msgid "Black"
+#: App/Controller/Admin/Api.php:121
+msgid "Connected successfully!"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:68
-#: App/Controller/Admin/Labels.php:276
-msgid "Shortcodes"
+#: App/Controller/Admin/Api.php:146
+msgid "Disconnected successfully!"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:89
+#: App/Controller/Admin/Api.php:168
+#: App/Controller/Admin/Api.php:278
+msgid "API connection not configured"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:239
+msgid "Failed to fetch lists"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:285
+msgid "Failed to fetch migration status"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:296
+msgid "Security check failed"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:303
+msgid "No list configured"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:315
+msgid "CSV file not found"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:319
+msgid "Invalid file path"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:324
+msgid "CSV file not found or not readable"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:360
+msgid "No list configured for synchronization"
+msgstr ""
+
+#: App/Controller/Admin/Api.php:370
+msgid "A synchronization run is already in progress and will continue processing all users batch by batch."
+msgstr ""
+
+#: App/Controller/Admin/Api.php:378
+msgid "A new synchronization run has been queued. It will start after the current batch chain finishes."
+msgstr ""
+
+#: App/Controller/Admin/Api.php:385
+msgid "Synchronization run started successfully. The first batch has been queued."
+msgstr ""
+
+#: App/Controller/Admin/Api.php:389
+msgid "A synchronization run is already being started. Please wait for the current batch chain to continue."
+msgstr ""
+
+#: App/Controller/Admin/Api.php:391
+msgid "Synchronization could not be started because Action Scheduler is unavailable."
+msgstr ""
+
+#: App/Controller/Admin/Api.php:400
+msgid "Failed to trigger synchronization"
+msgstr ""
+
+#: App/Controller/Admin/Labels.php:58
 msgid "Save Changes"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:90
-msgid "Upgrade to Pro"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:93
-msgid "Reset"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:94
-msgid "Back"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:95
-#: App/Controller/Admin/Labels.php:134
+#: App/Controller/Admin/Labels.php:59
 msgid "Back to WPLoyalty"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:96
-msgid "Edit Styles"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:97
-msgid "Design"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:98
-msgid "Content"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:99
-#: App/Controller/Admin/Labels.php:288
-msgid "Launcher"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:100
-msgid "Default"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:101
-msgid "Upload icon"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:102
-msgid "Icon"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:104
-#: App/Controller/Admin/Labels.php:119
-msgid "Restore Default"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:105
-#: App/Controller/Admin/Labels.php:120
-msgid "Browse Image"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:107
-msgid "Background"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:108
-msgid "Text"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:109
-msgid "Texts"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:110
-msgid "Link"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:111
-#: App/Controller/Admin/Labels.php:136
-msgid "Color"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:112
-#: App/Controller/Admin/Labels.php:212
-msgid "Colors"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:113
-msgid "Buttons"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:114
-msgid "Title"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:115
-msgid "Description"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:116
-msgid "Visibility"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:117
-#: App/Controller/Admin/Labels.php:143
-msgid "Show"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:118
-#: App/Controller/Admin/Labels.php:126
-msgid "Do not show"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:121
-#: App/Controller/Admin/Labels.php:229
-msgid "Left"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:122
-#: App/Controller/Admin/Labels.php:230
-msgid "Right"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:123
-msgid "Mobile Only"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:124
-msgid "Desktop Only"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:125
-msgid "Mobile and Desktop"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:127
-msgid "Choose an image to preview."
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:128
-msgid "Your logo"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:129
-msgid "Font Family"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:135
-msgid "Reset Successfully"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:137
-msgid "No results found!"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:139
-msgid "click to activate"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:140
-msgid "click to de-activate"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:144
-msgid "None"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:146
-msgid "Banner"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:147
-msgid "Enabled"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:148
-msgid "Disabled"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:149
-msgid "Welcome"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:150
-msgid "Referrals"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:151
-msgid "Earn & Redeem"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:152
-msgid "Earn"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:153
-#: App/Controller/Member.php:60
-msgid "Redeem"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:154
-msgid "Level A"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:155
-msgid "Yes, Reset"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:156
-msgid "Cancel"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:157
-msgid "Reset Settings?"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:158
-msgid "Are you sure want to reset this settings?"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:159
-msgid "This preview uses dummy records."
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:160
-#: App/Controller/Common.php:304
-msgid "Powered by"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:161
-#: App/Controller/Common.php:306
-msgid "WPLoyalty"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:162
-#: App/Controller/Admin/Labels.php:178
-msgid "My Rewards"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:163
-msgid "My Coupons"
-msgstr ""
-
-#. translators: %s will replace the reward label configured in the settings
-#: App/Controller/Admin/Labels.php:164
-#: App/Controller/Common.php:316
-msgid "Apply"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:165
-msgid "Show widget on specific locations based on conditions"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:166
-msgid "Add Condition"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:167
-msgid "URL's"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:168
-msgid "Home page"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:169
-msgid "Contains"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:170
-msgid "Do not contains"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:171
-msgid "Match All"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:172
-msgid "Match Any"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:173
-msgid "Conditions"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:174
-msgid "delete"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:177
-msgid "Reward Opportunities"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:190
+#: App/Controller/Admin/Labels.php:70
 msgid "Mailchimp Settings"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:191
-msgid "Mailchimp API Key"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:192
+#: App/Controller/Admin/Labels.php:71
 msgid "Enter your Mailchimp API Key"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:193
+#: App/Controller/Admin/Labels.php:72
 msgid "You can find your API key in your Mailchimp account settings."
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:205
-msgid "Logo"
+#: App/Controller/Admin/Labels.php:73
+msgid "Status"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:206
-msgid "VISIBILITY"
+#: App/Controller/Admin/Labels.php:74
+msgid "Active"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:208
-msgid "Choose your logo from the media library"
+#: App/Controller/Admin/Labels.php:75
+msgid "Inactive"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:213
-msgid "THEME"
+#: App/Controller/Admin/Labels.php:76
+msgid "Connect"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:214
-msgid "Theme Color"
+#: App/Controller/Admin/Labels.php:77
+msgid "Disconnect"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:215
-msgid "BANNER"
+#: App/Controller/Admin/Labels.php:78
+msgid "Select Mailchimp List"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:216
-msgid "BUTTONS"
+#: App/Controller/Admin/Labels.php:79
+msgid "Search or select a list"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:217
-msgid "LINKS"
+#: App/Controller/Admin/Labels.php:80
+msgid "Choose the Mailchimp list where customers will be added"
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:218
-msgid "ICONS"
+#: App/Controller/Admin/Labels.php:81
+msgid "Connect Mailchimp before saving."
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:225
-msgid "Placement"
+#: App/Controller/Admin/Labels.php:82
+msgid "Please select a Mailchimp list."
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:227
-msgid "Position"
+#: App/Controller/Admin/Labels.php:84
+msgid "Type to search lists..."
 msgstr ""
 
-#: App/Controller/Admin/Labels.php:234
-msgid "Spacing"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:235
-msgid "The position of the panel and launcher relative to the customer's window. Only applies to desktop mode."
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:236
-msgid "Side spacing"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:237
-msgid "Bottom spacing"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:240
-msgid "Branding"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:251
-msgid "Guest"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:254
-msgid "Have an account?"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:255
-msgid "Sign in"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:258
-msgid "Create account"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:271
-msgid "Member"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:273
-msgid "LEVELS"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:274
-msgid "Points"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:275
-msgid "Point description"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:289
-msgid "Edit Launcher"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:290
-msgid "APPEARANCE"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:291
-#: App/Controller/Admin/Labels.php:298
-msgid "Icon with text"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:292
-#: App/Controller/Admin/Labels.php:299
-msgid "Icon only"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:293
-#: App/Controller/Admin/Labels.php:300
-msgid "Text only"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:294
-msgid "Icon only on mobile"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:303
-msgid "View option"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:306
-msgid "Both mobile and desktop"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:309
-msgid "Mobile only"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:310
-msgid "Desktop only"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:312
-msgid "Font"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:324
-msgid "Inherit"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:325
-msgid "Helvetica Neue"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:326
-msgid "Arial"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:327
-msgid "Courier New"
-msgstr ""
-
-#: App/Controller/Admin/Labels.php:328
-msgid "Impact"
-msgstr ""
-
-#: App/Controller/Admin/Settings.php:40
-#: App/Controller/Admin/Settings.php:44
-#: App/Controller/Admin/Settings.php:53
-msgid "Settings not saved!"
-msgstr ""
-
-#: App/Controller/Admin/Settings.php:59
-msgid "Settings saved!"
-msgstr ""
-
-#: App/Controller/Common.php:131
-msgid "WPLoyalty - Launcher"
-msgstr ""
-
-#: App/Controller/Common.php:132
-msgid "Launcher widget for WPLoyalty. Let your customers easily discover your loyalty rewards."
-msgstr ""
-
-#: App/Controller/Common.php:299
-msgid "Day"
-msgstr ""
-
-#: App/Controller/Common.php:300
-msgid "Month"
-msgstr ""
-
-#: App/Controller/Common.php:301
-msgid "Year"
-msgstr ""
-
-#: App/Controller/Common.php:309
-msgid "Coupons"
-msgstr ""
-
-#: App/Controller/Common.php:310
+#: App/Controller/Admin/Labels.php:85
 msgid "Loading..."
 msgstr ""
 
-#: App/Controller/Common.php:311
-msgid "If loading takes a while, please refresh the screen...!"
+#: App/Controller/Admin/Labels.php:86
+msgid "Searching through lists..."
 msgstr ""
 
-#. translators: %s will replace the reward label configured in the settings
-#: App/Controller/Common.php:313
-msgid "%s Opportunities"
+#: App/Controller/Admin/Labels.php:87
+msgid "No lists found"
 msgstr ""
 
-#. translators: %s will replace the reward label configured in the settings
-#: App/Controller/Common.php:315
-msgid "My %s"
+#. translators: %s will be replaced with total count
+#: App/Controller/Admin/Labels.php:89
+msgid "Searching through %s lists..."
 msgstr ""
 
-#: App/Controller/Common.php:317
-msgid "Read more"
+#. translators: %s will be replaced with total count
+#: App/Controller/Admin/Labels.php:90
+msgid "Scroll for more..."
 msgstr ""
 
-#: App/Controller/Common.php:318
-msgid "Read less"
+#: App/Controller/Admin/Labels.php:92
+msgid "Migration existing users?"
 msgstr ""
 
-#. translators: %s will be replaced with the reward label
-#: App/Controller/Guest.php:55
-#: App/Controller/Member.php:52
-#: App/Helper/Loyalty.php:565
-#: App/Helper/Loyalty.php:577
-msgid "No %s found!"
+#: App/Controller/Admin/Labels.php:93
+msgid "Select migration choice"
 msgstr ""
 
-#. translators: %s will be replaced with the expiry date
-#: App/Controller/Member.php:75
-msgid "Expires on %s"
+#: App/Controller/Admin/Labels.php:94
+msgid "Choose your migration option, by default users added when their point updated"
 msgstr ""
 
-#: App/Controller/Member.php:120
-msgid "No coupons found!"
+#: App/Controller/Admin/Labels.php:95
+msgid "Please choose whether to migrate existing users."
 msgstr ""
 
-#: App/Helper/Loyalty.php:95
-#: App/Helper/Loyalty.php:122
-msgid "Create a first campaign."
+#: App/Controller/Admin/Labels.php:97
+msgid "Yes"
 msgstr ""
 
-#: App/Helper/Loyalty.php:164
-msgid "Follow"
+#: App/Controller/Admin/Labels.php:98
+msgid "No"
 msgstr ""
 
-#: App/Helper/Loyalty.php:166
-#: App/Helper/Loyalty.php:178
-#: App/Helper/Loyalty.php:203
-#: App/Helper/Loyalty.php:212
-msgid "Earned"
+#: App/Controller/Admin/Labels.php:101
+msgid "Migration Status"
 msgstr ""
 
-#: App/Helper/Loyalty.php:174
-msgid "Edit"
+#: App/Controller/Admin/Labels.php:102
+msgid "Sync progress for the selected Mailchimp list"
 msgstr ""
 
-#: App/Helper/Loyalty.php:174
-msgid "Set"
+#: App/Controller/Admin/Labels.php:103
+msgid "No runs yet"
 msgstr ""
 
-#: App/Helper/Loyalty.php:175
-msgid "Update"
+#: App/Controller/Admin/Labels.php:104
+msgid "In progress"
 msgstr ""
 
-#: App/Helper/Loyalty.php:199
-msgid "Share"
+#: App/Controller/Admin/Labels.php:105
+msgid "Completed with errors"
 msgstr ""
 
-#: App/Helper/Loyalty.php:209
-msgid "Sign Up"
+#: App/Controller/Admin/Labels.php:106
+msgid "Completed"
 msgstr ""
 
-#: App/Helper/Loyalty.php:311
-msgid "Point for purchase"
+#: App/Controller/Admin/Labels.php:107
+msgid "Refresh status"
 msgstr ""
 
-#: App/Helper/Loyalty.php:312
-msgid "+10 Points for every $1 spent"
+#: App/Controller/Admin/Labels.php:108
+msgid "Total members"
 msgstr ""
 
-#: App/Helper/Loyalty.php:317
-msgid "Celebrate a birthday"
+#: App/Controller/Admin/Labels.php:109
+msgid "Success"
 msgstr ""
 
-#: App/Helper/Loyalty.php:318
-msgid "+30 points"
+#: App/Controller/Admin/Labels.php:110
+msgid "Failures"
 msgstr ""
 
-#: App/Helper/Loyalty.php:323
-msgid "Twitter Share"
+#: App/Controller/Admin/Labels.php:111
+msgid "Batches"
 msgstr ""
 
-#: App/Helper/Loyalty.php:324
-msgid "+70 points"
+#: App/Controller/Admin/Labels.php:112
+msgid "failed migration detected."
 msgstr ""
 
-#: App/Helper/Loyalty.php:329
-msgid "Follow on Facebook"
+#: App/Controller/Admin/Labels.php:113
+msgid "Processing failed users CSV..."
 msgstr ""
 
-#: App/Helper/Loyalty.php:330
-msgid "+50 points"
+#: App/Controller/Admin/Labels.php:114
+msgid "Check Status"
 msgstr ""
 
-#: App/Helper/Loyalty.php:335
-msgid "Review a Product"
+#: App/Controller/Admin/Labels.php:115
+msgid "CSV file ready for download."
 msgstr ""
 
-#: App/Helper/Loyalty.php:336
-msgid "+800 points"
+#: App/Controller/Admin/Labels.php:116
+msgid "Download failed users CSV"
 msgstr ""
 
-#. translators: %s will replace discount value
-#: App/Helper/Loyalty.php:359
-#: App/Helper/Loyalty.php:365
-msgid "%s Off"
+#: App/Controller/Admin/Labels.php:117
+msgid "CSV processing failed. Please try again."
 msgstr ""
 
-#. translators: First %d will replace required point, Second %s will replace point label, Third %s will replace discount value
-#: App/Helper/Loyalty.php:361
-#: App/Helper/Loyalty.php:367
-msgid "%1$d %2$s = %3$s Off"
+#: App/Controller/Admin/Labels.php:118
+msgid "Download error file"
 msgstr ""
 
-#. translators: First %d will replace discount value, Second %s will replace % symbol
-#: App/Helper/Loyalty.php:373
-msgid "%1$d%2$s Off"
+#: App/Controller/Admin/Labels.php:119
+msgid "No migration errors detected."
 msgstr ""
 
-#. translators: First %d will replace required point, Second %s will replace point label, Third %d will replace discount value, Fourth %s will replace % symbol
-#: App/Helper/Loyalty.php:375
-msgid "%1$d %2$s = %3$d%4$s Off"
+#: App/Controller/Admin/Labels.php:120
+msgid "Last checked:"
 msgstr ""
 
-#: App/Helper/Loyalty.php:379
-#: App/Helper/Loyalty.php:441
-#: App/Helper/Loyalty.php:639
-#: App/Helper/Loyalty.php:640
-msgid "Free product"
+#: App/Controller/Admin/Labels.php:121
+msgid "No migrations have run for this list yet. Migrations will appear here once started."
 msgstr ""
 
-#: App/Helper/Loyalty.php:383
-#: App/Helper/Loyalty.php:444
-#: App/Helper/Loyalty.php:482
-#: App/Helper/Loyalty.php:537
-msgid "Free shipping"
+#: App/Controller/Admin/Labels.php:122
+msgid "Perform Sync"
 msgstr ""
 
-#: App/Helper/Loyalty.php:468
-msgid "Point conversion"
+#: App/Controller/Admin/Settings.php:43
+#: App/Controller/Admin/Settings.php:47
+#: App/Controller/Admin/Settings.php:92
+msgid "Settings not saved!"
 msgstr ""
 
-#: App/Helper/Loyalty.php:469
-msgid "Covert point into coupons"
+#: App/Controller/Admin/Settings.php:68
+msgid "Connection failed with the provided API key"
 msgstr ""
 
-#: App/Helper/Loyalty.php:470
-msgid "10 points = $15.00 Off"
+#: App/Controller/Admin/Settings.php:94
+msgid "This field is required"
 msgstr ""
 
-#: App/Helper/Loyalty.php:475
-#: App/Helper/Loyalty.php:524
-#: App/Helper/Loyalty.php:632
-#: App/Helper/Loyalty.php:633
-msgid "Percentage discount"
+#: App/Controller/Admin/Settings.php:106
+msgid "Unable to setup Mailchimp merge fields for the selected list."
 msgstr ""
 
-#: App/Helper/Loyalty.php:476
-msgid "Redeem points and get percentage discount"
+#: App/Controller/Admin/Settings.php:120
+msgid "Settings saved!"
 msgstr ""
 
-#: App/Helper/Loyalty.php:477
-msgid "100 points = 10% Off"
-msgstr ""
-
-#: App/Helper/Loyalty.php:483
-msgid "Redeem points and get free shipping"
-msgstr ""
-
-#: App/Helper/Loyalty.php:484
-msgid "free shipping"
-msgstr ""
-
-#: App/Helper/Loyalty.php:489
-#: App/Helper/Loyalty.php:515
-msgid "Fixed discount"
-msgstr ""
-
-#: App/Helper/Loyalty.php:490
-msgid "Redeem points and get fixed discount"
-msgstr ""
-
-#: App/Helper/Loyalty.php:491
-msgid "100 points = $10.00 Off"
-msgstr ""
-
-#: App/Helper/Loyalty.php:516
-msgid "Fixed discount description"
-msgstr ""
-
-#: App/Helper/Loyalty.php:517
-msgid "Expires on 2024-04-12"
-msgstr ""
-
-#: App/Helper/Loyalty.php:519
-msgid "$10.00"
-msgstr ""
-
-#: App/Helper/Loyalty.php:525
-msgid "Percentage discount description"
-msgstr ""
-
-#: App/Helper/Loyalty.php:526
-msgid "Expires on 2023-05-12"
-msgstr ""
-
-#: App/Helper/Loyalty.php:528
-msgid "10%"
-msgstr ""
-
-#: App/Helper/Loyalty.php:533
-msgid "Free Shipping"
-msgstr ""
-
-#: App/Helper/Loyalty.php:534
-msgid "Free shipping description"
-msgstr ""
-
-#: App/Helper/Loyalty.php:625
-msgid "Fixed coupon discount"
-msgstr ""
-
-#: App/Helper/Loyalty.php:626
-msgid "Coupon reward"
-msgstr ""
-
-#: App/Helper/Loyalty.php:646
-#: App/Helper/Loyalty.php:647
-msgid "Points conversion"
-msgstr ""
-
-#. translators: First %1$d will replace the needed point to reach next level, Second %2$s will replace the point label
-#: App/Helper/Member.php:138
-msgid "%1$d %2$s more needed to unlock next level"
-msgstr ""
-
-#: App/Helper/Member.php:142
-msgid "Congratulations! You have reached the final level"
+#: App/Controller/Common.php:128
+msgid "The add-on integrates WPLoyalty with your Mailchimp."
 msgstr ""
 
 #. translators: First %s will replace plugin name, Second %s replace minimum PHP version
@@ -866,108 +383,18 @@ msgstr ""
 msgid "%1$s requires minimum loyalty version %2$s"
 msgstr ""
 
-#: App/Helper/Settings.php:19
-msgid "Displays site title"
-msgstr ""
-
-#: App/Helper/Settings.php:24
-msgid "Sign-up URL (Registration URL)"
-msgstr ""
-
-#: App/Helper/Settings.php:28
-msgid "Sign-in URL (The Login URL in your site)"
-msgstr ""
-
-#: App/Helper/Settings.php:32
-msgid "Displays customer’s name"
-msgstr ""
-
-#. translators: %s will replace the points label
-#: App/Helper/Settings.php:36
-msgid "Displays customer’s %s"
-msgstr ""
-
-#: App/Helper/Settings.php:40
-msgid "Displays the “points label” as configured in the settings"
-msgstr ""
-
-#. translators: %s will replace the points label
-#: App/Helper/Settings.php:47
-msgid "Displays %s reward for existing customers / advocates as configured in the referral campaign"
-msgstr ""
-
-#. translators: %s will replace the points label
-#: App/Helper/Settings.php:52
-msgid "Displays %s percentage for existing customers / advocates as configured in the referral campaign"
-msgstr ""
-
-#: App/Helper/Settings.php:56
-msgid "Displays any direct coupon rewards for existing customers / advocates as configured in the referral campaign"
-msgstr ""
-
-#. translators: %s will replace the points label
-#: App/Helper/Settings.php:61
-msgid "Displays %s reward for friends as configured in the referral campaign"
-msgstr ""
-
-#. translators: %s will replace the points label
-#: App/Helper/Settings.php:66
-msgid "Displays %s percentage for friends as configured in the referral campaign"
-msgstr ""
-
-#: App/Helper/Settings.php:70
-msgid "Displays any direct coupon reward for friends as configured in the referral campaign"
-msgstr ""
-
-#: App/Helper/Validation.php:54
-#: App/Helper/Validation.php:233
-#: App/Helper/Validation.php:395
-#: App/Helper/Validation.php:523
+#: App/Helper/Validation.php:98
 msgid "This field"
 msgstr ""
 
-#: App/Helper/Validation.php:62
-#: App/Helper/Validation.php:241
-#: App/Helper/Validation.php:251
-#: App/Helper/Validation.php:402
-#: App/Helper/Validation.php:412
-#: App/Helper/Validation.php:531
+#: App/Helper/Validation.php:106
 msgid "Invalid characters"
 msgstr ""
 
-#: App/Helper/Validation.php:88
-#: App/Helper/Validation.php:325
-#: App/Helper/Validation.php:502
-#: App/Helper/Validation.php:544
+#: App/Helper/Validation.php:119
 msgid "{field} is required"
 msgstr ""
 
-#: App/Helper/Validation.php:246
-#: App/Helper/Validation.php:407
-msgid "must contain only numbers 0-9"
-msgstr ""
-
-#: App/Helper/Validation.php:256
-#: App/Helper/Validation.php:261
-#: App/Helper/Validation.php:417
-#: App/Helper/Validation.php:422
-#: App/Helper/Validation.php:427
-msgid "has invalid shortcodes."
-msgstr ""
-
-#: App/Helper/Validation.php:432
-msgid "is empty"
-msgstr ""
-
-#: App/Helper/Validation.php:498
-msgid "{field} has empty value"
-msgstr ""
-
-#: App/Helper/Validation.php:499
-#: App/Helper/Validation.php:500
-msgid "{field} has invalid characters"
-msgstr ""
-
-#: App/Setup.php:57
+#: App/Setup.php:64
 msgid "Support"
 msgstr ""

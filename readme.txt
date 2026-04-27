@@ -55,13 +55,5 @@ Yes. The plugin includes migration sync support for existing customer records.
 
 = 1.0.0 =
 - Initial stable release.
-- Mailchimp connection and audience/list management.
-- Loyalty member sync on points changes.
-- Member removal sync on customer delete.
-- Batch migration support for existing loyalty customer data.
-- License management UI and API integration.
 
 == Upgrade Notice ==
-
-= 1.0.0 =
-Initial release of the WPLoyalty Mailchimp integration add-on.

@@ -2,13 +2,13 @@
 /**
  * Plugin Name: WPLoyalty - Mailchimp Integration
  * Plugin URI: https://www.wployalty.net
- * Description: Mailchimp integration for WPLoyalty.
+ * Description: This add-on used to integrate WPLoyalty with Mailchimp.
  * Version: 1.0.0
  * Author: Wployalty
  * Slug: wp-loyalty-mailchimp-integration
  * Text Domain: wp-loyalty-mailchimp-integration
  * Domain Path: /i18n/languages/
- * Requires Plugins: woocommerce, wp-loyalty-rules
+ * Requires Plugins: wp-loyalty-rules
  * Requires at least: 6.0
  * WC requires at least: 10.0
  * WC tested up to: 10.7
@@ -81,21 +81,21 @@ if ( ! function_exists( 'wlmi_is_loyalty_active' ) ) {
 	}
 }
 
-if ( ! wlmi_is_loyalty_active() || ! ( (int) version_compare( wlmi_get_wlr_plugin_version(), '1.4.4', '>=' ) > 0 ) ) {
+if ( ! wlmi_is_loyalty_active() || ! ( (int) version_compare( wlmi_get_wlr_plugin_version(), '1.4.5', '>=' ) > 0 ) ) {
 	return;
 }
 
 defined( 'WLMI_PLUGIN_NAME' ) or define( 'WLMI_PLUGIN_NAME', 'WPLoyalty - Mailchimp Integration' );
-defined( 'WLMI_MINIMUM_PHP_VERSION' ) or define( 'WLMI_MINIMUM_PHP_VERSION', '7.4' );
-defined( 'WLMI_MINIMUM_WP_VERSION' ) or define( 'WLMI_MINIMUM_WP_VERSION', '6.0' );
-defined( 'WLMI_MINIMUM_WC_VERSION' ) or define( 'WLMI_MINIMUM_WC_VERSION', '10.0' );
-defined( 'WLMI_MINIMUM_WLR_VERSION' ) or define( 'WLMI_MINIMUM_WLR_VERSION', '1.4.5' );
 defined( 'WLMI_PLUGIN_VERSION' ) or define( 'WLMI_PLUGIN_VERSION', '1.0.0' );
 defined( 'WLMI_PLUGIN_SLUG' ) or define( 'WLMI_PLUGIN_SLUG', 'wp-loyalty-mailchimp-integration' );
 defined( 'WLMI_PLUGIN_FILE' ) or define( 'WLMI_PLUGIN_FILE', __FILE__ );
 defined( 'WLMI_PLUGIN_DIR' ) or define( 'WLMI_PLUGIN_DIR', str_replace( '\\', '/', __DIR__ ) );
 defined( 'WLMI_PLUGIN_PATH' ) or define( 'WLMI_PLUGIN_PATH', str_replace( '\\', '/', __DIR__ ) . '/' );
 defined( 'WLMI_PLUGIN_URL' ) or define( 'WLMI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+defined( 'WLMI_MINIMUM_PHP_VERSION' ) or define( 'WLMI_MINIMUM_PHP_VERSION', '7.4' );
+defined( 'WLMI_MINIMUM_WP_VERSION' ) or define( 'WLMI_MINIMUM_WP_VERSION', '6.0' );
+defined( 'WLMI_MINIMUM_WC_VERSION' ) or define( 'WLMI_MINIMUM_WC_VERSION', '10.0' );
+defined( 'WLMI_MINIMUM_WLR_VERSION' ) or define( 'WLMI_MINIMUM_WLR_VERSION', '1.4.5' );
 
 if ( ! file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 	return;
