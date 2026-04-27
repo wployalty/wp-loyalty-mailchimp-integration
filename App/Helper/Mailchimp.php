@@ -2,6 +2,7 @@
 
 namespace WLMI\App\Helper;
 
+use WLMI\App\Controller\Sync;
 use WLMI\App\Helper\Settings as SettingsHelper;
 
 defined( 'ABSPATH' ) || exit;
@@ -144,7 +145,6 @@ class Mailchimp {
 		try {
 			return $mailchimp->batches->start( [ 'operations' => $operations ] );
 		} catch ( \Exception $e ) {
-			wc_get_logger()->add( 'wlmi', 'Mailchimp batch start failed: ' . $e->getMessage() );
 			return null;
 		}
 	}
@@ -170,7 +170,6 @@ class Mailchimp {
 		try {
 			return $mailchimp->batches->status( $batch_id );
 		} catch ( \Exception $e ) {
-			wc_get_logger()->add( 'wlmi', 'Mailchimp batch status check failed for batch_id ' . $batch_id . ': ' . $e->getMessage() );
 			return null;
 		}
 	}
@@ -249,7 +248,7 @@ class Mailchimp {
 
 		try {
 			$subscriber_hash = md5( strtolower( trim( $email ) ) );
-			$status = $mailchimp->lists->setListMember( $list_id, $subscriber_hash, [
+			$mailchimp->lists->setListMember( $list_id, $subscriber_hash, [
 				'email_address' => $email,
 				'status_if_new' => 'subscribed',
 				'status'        => 'subscribed',
@@ -268,7 +267,7 @@ class Mailchimp {
 					}
 				}
 			}
-			wc_get_logger()->add( 'wlmi', $log_message );
+			Sync::log( $log_message );
 			return false;
 		}
 	}
@@ -296,9 +295,6 @@ class Mailchimp {
 		try {
 			$subscriber_hash = md5( strtolower( trim( $email ) ) );
 			$mailchimp->lists->deleteListMember( $list_id, $subscriber_hash );
-			if ( function_exists( 'wc_get_logger' ) ) {
-				wc_get_logger()->add( 'wlmi', 'Mailchimp member deleted: ' . $email );
-			}
 			return true;
 		} catch ( \Exception $e ) {
 			$log_message = 'Mailchimp member delete failed: ' . $e->getMessage();
@@ -311,9 +307,7 @@ class Mailchimp {
 					}
 				}
 			}
-			if ( function_exists( 'wc_get_logger' ) ) {
-				wc_get_logger()->add( 'wlmi', $log_message );
-			}
+			Sync::log( $log_message );
 			return false;
 		}
 	}

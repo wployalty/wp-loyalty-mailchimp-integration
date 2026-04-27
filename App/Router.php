@@ -37,7 +37,6 @@ class Router {
 			add_action( 'wp_ajax_wlmi_download_failed_users_csv', [ Api::class, 'downloadFailedUsersCSV' ] );
 			add_action( 'wp_ajax_wlmi_perform_sync', [ Api::class, 'performSync' ] );
 		}
-		add_filter( 'wlr_internal_addons_list', [ Common::class, 'addInternalAddons' ] );
 		add_action( 'wlr_customer_points_balance_changed', [ Sync::class, 'syncMember' ], 10, 6 );
 		add_filter( 'wlr_delete_customer', [ Sync::class, 'onDeleteCustomer' ], 10, 2 );
 		add_action( Sync::SYNC_ACTION_HOOK, [ Sync::class, 'processQueuedMemberSync' ], 10, 1 );

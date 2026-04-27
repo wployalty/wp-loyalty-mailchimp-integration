@@ -80,7 +80,17 @@ class Settings {
 			$settings['server']  = isset( $existing_settings['server'] ) ? (string) $existing_settings['server'] : '';
 		}
 
+		// Enforce validation on the effective settings (supports partial updates).
 		$validate_data = Validation::validateSettingsTab( [ 'settings' => $settings ] );
+		if ( is_array( $validate_data ) ) {
+			foreach ( $validate_data as $key => $validate ) {
+				$validate_data[ $key ] = [ current( $validate ) ];
+			}
+			wp_send_json_error( [
+				'message'     => __( 'Settings not saved!', 'wp-loyalty-mailchimp-integration' ),
+				'field_error' => $validate_data,
+			] );
+		}
 
 		$list_id           = isset( $settings['list_id'] ) ? (string) $settings['list_id'] : '';
 		$old_list_id       = isset( $existing_settings['list_id'] ) ? (string) $existing_settings['list_id'] : '';

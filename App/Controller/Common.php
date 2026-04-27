@@ -107,37 +107,4 @@ class Common {
 		];
 		wp_localize_script( $localize_name, 'wlmi_settings_form', $localize_data );
 	}
-
-	/**
-	 * Adds internal addons to the provided list of addons.
-	 *
-	 * This method adds internal addons to the list of addons passed as a parameter. It checks for a specific addon,
-	 * updates the addon list accordingly, and then adds a new internal addon to the list.
-	 *
-	 * @param array $add_ons An array containing the list of addons.
-	 *
-	 * @return array The updated list of addons with internal addons added.
-	 */
-	public static function addInternalAddons( $add_ons ) {
-		if ( ! empty( $add_ons['wp-loyalty-launcher'] ) ) {
-			unset( $add_ons['wp-loyalty-launcher'] );
-		}
-		update_option( 'wlmi_is_launcher_plugin_activated', true );
-		$add_ons['wp-loyalty-mailchimp-integration'] = [
-			'name'         => esc_html__( 'WPLoyalty - Mailchimp Integration', 'wp-loyalty-mailchimp-integration' ),
-			'description'  => __( 'The add-on integrates WPLoyalty with your Mailchimp.', 'wp-loyalty-mailchimp-integration' ),
-			'icon_url'     => \Wlr\App\Helpers\Util::getImageUrl( 'wp-loyalty-mailchimp-integration' ),
-			'page_url'     => '{addon_page}',
-			'document_url' => '',
-			'is_external'  => true,
-			'is_pro'       => false,
-			'dependencies' => [],
-			'plugin_file'  => 'wp-loyalty-mailchimp-integration/wp-loyalty-mailchimp-integration.php',
-		];
-
-		return $add_ons;
-	}
-
-
-
 }
