@@ -119,10 +119,10 @@ class Common {
 	 * @return array The updated list of addons with internal addons added.
 	 */
 	public static function addInternalAddons( $add_ons ) {
-		if ( ! empty( $add_ons['wp-loyalty-launcher'] ) ) {
-			unset( $add_ons['wp-loyalty-launcher'] );
+		if ( ! empty( $add_ons['wp-loyalty-mailchimp-integration'] ) ) {
+			unset( $add_ons['wp-loyalty-mailchimp-integration'] );
 		}
-		update_option( 'wlmi_is_launcher_plugin_activated', true );
+		update_option( 'wlmi_is_mailchimp_integration_plugin_activated', true );
 		$add_ons['wp-loyalty-mailchimp-integration'] = [
 			'name'         => esc_html__( 'WPLoyalty - Mailchimp Integration', 'wp-loyalty-mailchimp-integration' ),
 			'description'  => __( 'The add-on integrates WPLoyalty with your Mailchimp.', 'wp-loyalty-mailchimp-integration' ),

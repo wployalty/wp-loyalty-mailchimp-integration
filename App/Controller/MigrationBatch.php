@@ -108,8 +108,6 @@ class MigrationBatch {
 			return false;
 		}
 		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
-			wc_get_logger()->add( 'wlmi', 'Action Scheduler not available for migration scheduling.' );
-
 			return false;
 		}
 
@@ -372,8 +370,6 @@ class MigrationBatch {
 			return 'invalid';
 		}
 		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
-			wc_get_logger()->add( 'wlmi', 'Action Scheduler not available for migration scheduling.' );
-
 			return 'unavailable';
 		}
 		if ( ! self::acquireSchedulingLock( $list_id ) ) {
@@ -409,8 +405,6 @@ class MigrationBatch {
 			return;
 		}
 		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
-			wc_get_logger()->add( 'wlmi', 'Action Scheduler not available for migration scheduling.' );
-
 			return;
 		}
 
@@ -473,7 +467,6 @@ class MigrationBatch {
 		WC::setTimeLimit( 120 );
 		$settings = SettingsHelper::gets();
 		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
-			wc_get_logger()->add( 'wlmi', 'Mailchimp settings missing for migration batch.' );
 			return;
 		}
 
@@ -530,7 +523,6 @@ class MigrationBatch {
 
 		$response = MailchimpHelper::startBatch( $settings, $operations );
 		if ( empty( $response ) ) {
-			wc_get_logger()->add( 'wlmi', 'Mailchimp batch migration failed for start_id: ' . $start_id );
 			return;
 		}
 
@@ -671,7 +663,6 @@ class MigrationBatch {
 
 		$settings = SettingsHelper::gets();
 		if ( empty( $settings['api_key'] ) || empty( $settings['server'] ) ) {
-			wc_get_logger()->add( 'wlmi', 'Settings missing during batch check for ' . $batch_id );
 			return;
 		}
 
@@ -682,7 +673,6 @@ class MigrationBatch {
 			if ( $attempt < $max_attempts ) {
 				self::scheduleBatchCheck( $list_id, $batch_id, $attempt + 1 );
 			} else {
-				wc_get_logger()->add( 'wlmi', 'Gave up checking batch ' . $batch_id . ' after ' . $attempt . ' attempts (no response).' );
 				self::markBatchAbandoned( $list_id );
 				self::maybeFinalizeMigration( $list_id, $settings );
 			}
@@ -696,7 +686,6 @@ class MigrationBatch {
 			if ( $attempt < $max_attempts ) {
 				self::scheduleBatchCheck( $list_id, $batch_id, $attempt + 1 );
 			} else {
-				wc_get_logger()->add( 'wlmi', 'Gave up checking batch ' . $batch_id . ' after ' . $attempt . ' attempts (still ' . $batch_status . ').' );
 				self::markBatchAbandoned( $list_id );
 				self::maybeFinalizeMigration( $list_id, $settings );
 			}
@@ -747,7 +736,6 @@ class MigrationBatch {
 
 		delete_option( self::MIGRATION_RUN_FLAG_PREFIX . $list_id );
 		delete_option( 'wlmi_rate_bucket_' . $list_id );
-		wc_get_logger()->add( 'wlmi', 'Migration run finalized for list ' . $list_id . '. Batches completed: ' . ( $stats['batches_completed'] ?? 0 ) );
 
 		self::completeMigrationRun( $list_id, $settings );
 	}
@@ -861,7 +849,6 @@ class MigrationBatch {
 		] );
 
 		if ( is_wp_error( $response ) ) {
-			wc_get_logger()->add( 'wlmi', 'Failed to download error file for batch ' . $batch_id . ': ' . $response->get_error_message() );
 			return;
 		}
 
@@ -869,13 +856,11 @@ class MigrationBatch {
 		$response_code = wp_remote_retrieve_response_code( $response );
 
 		if ( $response_code !== 200 || empty( $file_content ) ) {
-			wc_get_logger()->add( 'wlmi', 'Failed to download error file for batch ' . $batch_id . ': HTTP ' . $response_code );
 			return;
 		}
 
 		$tar_gz_path = $batch_log_dir . $batch_id . '-response.tar.gz';
 		if ( ! FileHelper::putContent( $tar_gz_path, $file_content ) ) {
-			wc_get_logger()->add( 'wlmi', 'Failed to save error file for batch ' . $batch_id );
 			return;
 		}
 		unset( $file_content );
@@ -1003,7 +988,6 @@ class MigrationBatch {
 		//phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		$handle = fopen( $csv_path, 'a' );
 		if ( $handle === false ) {
-			wc_get_logger()->add( 'wlmi', 'Failed to open CSV for appending: ' . $csv_path );
 			return;
 		}
 
@@ -1034,7 +1018,6 @@ class MigrationBatch {
 		try {
 			FileHelper::delete( $dir, true );
 		} catch ( \Exception $e ) {
-			wc_get_logger()->add( 'wlmi', 'Failed to clean up directory ' . $dir . ': ' . $e->getMessage() );
 		}
 	}
 }

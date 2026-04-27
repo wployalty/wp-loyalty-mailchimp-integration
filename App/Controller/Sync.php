@@ -213,7 +213,7 @@ class Sync {
 	 *
 	 * @return void
 	 */
-	protected static function log( string $message ) {
+	public static function log( string $message ) {
 		if ( function_exists( 'wc_get_logger' ) ) {
 			wc_get_logger()->add( 'wlmi', $message );
 		}
