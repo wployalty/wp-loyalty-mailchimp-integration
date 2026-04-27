@@ -130,13 +130,13 @@ const MigrationStatus = ({ isConnected, settings, migrationStatus, migrationStat
                             )}
 
                             {/* CSV Ready for Download */}
-                            {migrationStatus.csv_processing_status === 'completed' && migrationStatus.failed_users_csv_path && (
+                            {migrationStatus.csv_processing_status === 'completed' && (migrationStatus.failed_users_csv_url || appState.ajax_url) && (
                                 <div className="flex items-center gap-2 text-sm">
                                     <span className="text-green-600">
                                         {labels.settings?.csv_ready_message || "CSV file ready for download."}
                                     </span>
                                     <a
-                                        href={`${typeof wlmi_settings_form !== 'undefined' ? wlmi_settings_form.ajax_url : appState.ajax_url || ''}?action=wlmi_download_failed_users_csv&wlmi_nonce=${appState.settings_nonce}`}
+                                        href={migrationStatus.failed_users_csv_url || `${typeof wlmi_settings_form !== 'undefined' ? wlmi_settings_form.ajax_url : appState.ajax_url || ''}?action=wlmi_download_failed_users_csv&wlmi_nonce=${appState.settings_nonce}`}
                                         className="text-primary hover:underline"
                                     >
                                         {labels.settings?.migration_download_csv || "Download failed users CSV"}
@@ -154,7 +154,7 @@ const MigrationStatus = ({ isConnected, settings, migrationStatus, migrationStat
                             {/* Fallback to raw error file if CSV not processing/completed and no CSV path */}
                             {migrationStatus.csv_processing_status !== 'processing' &&
                                 migrationStatus.csv_processing_status !== 'completed' &&
-                                !migrationStatus.failed_users_csv_path &&
+                                !migrationStatus.failed_users_csv_url &&
                                 migrationStatus.first_error_file_url && (
                                     <div className="flex items-center gap-2 text-sm">
                                         <a

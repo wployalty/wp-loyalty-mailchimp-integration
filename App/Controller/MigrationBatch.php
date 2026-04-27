@@ -14,6 +14,130 @@ defined( 'ABSPATH' ) || exit;
 
 class MigrationBatch {
 	/**
+	 * Base directory inside plugin for generated files (mirrors wp-loyalty-rules App/File).
+	 */
+	const PLUGIN_FILE_DIR = 'App/File/';
+
+	/**
+	 * Sanitize a path segment to avoid traversal/invalid characters.
+	 *
+	 * @param string $segment
+	 *
+	 * @return string
+	 */
+	protected static function sanitizePathSegment( string $segment ): string {
+		$segment = trim( $segment );
+		if ( $segment === '' ) {
+			return '';
+		}
+
+		return preg_replace( '/[^a-zA-Z0-9_\-]/', '', $segment ) ?? '';
+	}
+
+	/**
+	 * Get plugin file base dir.
+	 *
+	 * @return string
+	 */
+	protected static function getPluginFileBaseDir(): string {
+		if ( defined( 'WLMI_PLUGIN_PATH' ) ) {
+			return rtrim( (string) WLMI_PLUGIN_PATH, '/' ) . '/' . self::PLUGIN_FILE_DIR;
+		}
+
+		return WP_CONTENT_DIR . '/plugins/wp-loyalty-mailchimp-integration/' . self::PLUGIN_FILE_DIR;
+	}
+
+	/**
+	 * Get per-list directory inside plugin.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return string
+	 */
+	protected static function getListDir( string $list_id ): string {
+		$safe_list_id = self::sanitizePathSegment( $list_id );
+
+		return self::getPluginFileBaseDir() . $safe_list_id . '/';
+	}
+
+	/**
+	 * Get failed users CSV absolute path for a list.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return string
+	 */
+	protected static function getFailedUsersCsvPath( string $list_id ): string {
+		return self::getListDir( $list_id ) . 'failed-users.csv';
+	}
+
+	/**
+	 * Get failed users CSV public URL for a list.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return string
+	 */
+	protected static function getFailedUsersCsvUrl( string $list_id ): string {
+		$safe_list_id = self::sanitizePathSegment( $list_id );
+		if ( $safe_list_id === '' ) {
+			return '';
+		}
+		if ( ! defined( 'WLMI_PLUGIN_URL' ) ) {
+			return '';
+		}
+
+		return rtrim( (string) WLMI_PLUGIN_URL, '/' ) . '/' . self::PLUGIN_FILE_DIR . $safe_list_id . '/failed-users.csv';
+	}
+
+	/**
+	 * Get batch log directory inside plugin.
+	 *
+	 * @param string $list_id
+	 * @param string $batch_id
+	 *
+	 * @return string
+	 */
+	protected static function getBatchLogDir( string $list_id, string $batch_id ): string {
+		$safe_batch_id = self::sanitizePathSegment( $batch_id );
+
+		return self::getListDir( $list_id ) . 'batches/' . $safe_batch_id . '/';
+	}
+
+	/**
+	 * Best-effort cleanup for empty parent directories after deleting a batch dir.
+	 *
+	 * @param string $list_id
+	 *
+	 * @return void
+	 */
+	protected static function cleanupEmptyBatchParents( string $list_id ): void {
+		$list_dir   = self::getListDir( $list_id );
+		$batches_dir = $list_dir . 'batches/';
+
+		// Remove batches/ if empty
+		if ( is_dir( $batches_dir ) ) {
+			$files = @scandir( $batches_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( is_array( $files ) ) {
+				$entries = array_values( array_diff( $files, [ '.', '..' ] ) );
+				if ( empty( $entries ) ) {
+					FileHelper::delete( $batches_dir, true );
+				}
+			}
+		}
+
+		// Remove list folder if it contains no files
+		if ( is_dir( $list_dir ) ) {
+			$files = @scandir( $list_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( is_array( $files ) ) {
+				$entries = array_values( array_diff( $files, [ '.', '..' ] ) );
+				if ( empty( $entries ) ) {
+					FileHelper::delete( $list_dir, true );
+				}
+			}
+		}
+	}
+	/**
 	 * Transient key prefix used to serialize migration run starts per list.
 	 */
 	const MIGRATION_SCHEDULING_LOCK_PREFIX = 'wlmi_scheduling_lock_';
@@ -145,10 +269,15 @@ class MigrationBatch {
 			'started_at'            => time(),
 		] );
 
-		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
+		$base_dir = self::getPluginFileBaseDir();
+		FileHelper::ensureDir( $base_dir );
+
+		$list_dir = self::getListDir( $list_id );
+		FileHelper::ensureDir( $list_dir );
+
+		$csv_path = self::getFailedUsersCsvPath( $list_id );
 		if ( FileHelper::exists( $csv_path ) ) {
-			FileHelper::delete( $csv_path );
+			FileHelper::deleteWithPerms( $csv_path );
 		}
 
 		self::scheduleNextBatch( $list_id, 0 );
@@ -761,7 +890,7 @@ class MigrationBatch {
 			'has_any_pending'       => false,
 			'has_first_pending'     => false,
 			'first_error_file_url'  => null,
-			'failed_users_csv_path' => null,
+			'failed_users_csv_url'  => null,
 			'csv_processing_status' => 'not_started',
 			'last_checked_at'       => $last_checked_at,
 		];
@@ -798,15 +927,14 @@ class MigrationBatch {
 			$state = 'no_runs';
 		}
 
-		$csv_path   = null;
+		$csv_url    = null;
 		$csv_status = 'not_started';
 
 		if ( $state === 'completed' && $errored_operations > 0 ) {
-			$log_base_dir      = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-			$expected_csv_path = $log_base_dir . $list_id . '/failed-users.csv';
+			$expected_csv_path = self::getFailedUsersCsvPath( $list_id );
 
 			if ( FileHelper::exists( $expected_csv_path ) && FileHelper::isReadable( $expected_csv_path ) ) {
-				$csv_path   = $expected_csv_path;
+				$csv_url    = self::getFailedUsersCsvUrl( $list_id );
 				$csv_status = 'completed';
 			} else {
 				$csv_status = 'not_started';
@@ -823,7 +951,7 @@ class MigrationBatch {
 			'has_any_pending'       => $pending_state['has_any_batch_pending'],
 			'has_first_pending'     => $pending_state['has_first_batch_pending'],
 			'first_error_file_url'  => null,
-			'failed_users_csv_path' => $csv_path,
+			'failed_users_csv_url'  => $csv_url,
 			'csv_processing_status' => $csv_status,
 			'last_checked_at'       => $last_checked_at,
 		];
@@ -839,9 +967,8 @@ class MigrationBatch {
 	 * @return void
 	 */
 	protected static function processErrorsForBatch( string $list_id, string $batch_id, string $response_body_url ): void {
-		$log_base_dir  = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-		$batch_log_dir = $log_base_dir . $list_id . '/' . $batch_id . '/';
-		wp_mkdir_p( $batch_log_dir );
+		$batch_log_dir = self::getBatchLogDir( $list_id, $batch_id );
+		FileHelper::ensureDir( $batch_log_dir );
 
 		$response = wp_remote_get( $response_body_url, [
 			'timeout'   => 120,
@@ -863,11 +990,13 @@ class MigrationBatch {
 		if ( ! FileHelper::putContent( $tar_gz_path, $file_content ) ) {
 			return;
 		}
+		FileHelper::setPermissions( $tar_gz_path );
 		unset( $file_content );
 
 		$errors = self::extractErrorsFromTarGz( $tar_gz_path );
 
 		self::cleanupDirectory( $batch_log_dir );
+		self::cleanupEmptyBatchParents( $list_id );
 
 		if ( empty( $errors ) ) {
 			return;
@@ -890,7 +1019,7 @@ class MigrationBatch {
 		try {
 			self::cleanupDirectory( $extract_dir );
 
-			if ( ! wp_mkdir_p( $extract_dir ) ) {
+			if ( ! FileHelper::ensureDir( $extract_dir ) ) {
 				return $errors;
 			}
 
@@ -977,11 +1106,15 @@ class MigrationBatch {
 	 * @return void
 	 */
 	protected static function appendErrorsToCSV( string $list_id, array $errors ): void {
-		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-		$csv_dir      = $log_base_dir . $list_id . '/';
-		$csv_path     = $csv_dir . 'failed-users.csv';
+		$list_dir = self::getListDir( $list_id );
+		if ( ! FileHelper::ensureDir( $list_dir ) ) {
+			return;
+		}
+		if ( ! FileHelper::isWritable( $list_dir ) ) {
+			return;
+		}
 
-		wp_mkdir_p( $csv_dir );
+		$csv_path = self::getFailedUsersCsvPath( $list_id );
 
 		$is_new = ! file_exists( $csv_path );
 
@@ -1001,6 +1134,8 @@ class MigrationBatch {
 
 		//phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		fclose( $handle );
+
+		FileHelper::setPermissions( $csv_path );
 	}
 
 	/**
