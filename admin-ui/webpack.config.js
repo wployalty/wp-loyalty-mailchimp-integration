@@ -3,8 +3,15 @@ const react = new webpack.ProvidePlugin({
     React: "react",
 });
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 
-module.exports = {
+module.exports = (env, argv) => {
+    const isProd = argv && argv.mode === "production";
+    const cssFilename = isProd
+        ? "../assets/admin/css/dist/style.min.css"
+        : "../assets/admin/css/dist/style.css";
+
+    return {
     entry: "./src/index.js",
     output: {
         path: __dirname,
@@ -30,7 +37,14 @@ module.exports = {
             },
         ],
     },
+    optimization: {
+        minimizer: [
+            "...",
+            new CssMinimizerPlugin(),
+        ],
+    },
     plugins: [react, new MiniCssExtractPlugin({
-        filename: "../assets/admin/css/dist/style.css"
+        filename: cssFilename,
     })],
+};
 };
