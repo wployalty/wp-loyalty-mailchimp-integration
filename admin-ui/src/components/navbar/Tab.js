@@ -4,14 +4,14 @@ import {Link, useLocation} from "react-router-dom";
 const Tab = ({tab}) => {
     const currentPath = useLocation().pathname.split("/")[1];
     return <Link to={tab.path}
-                 className={`relative  shadow-none focus:outline-none  transition duration-200 ease-in`}
+                 className={`wlmi-relative  wlmi-shadow-none focus:wlmi-outline-none  wlmi-transition wlmi-duration-200 wlmi-ease-in`}
     >
-        <p className={`py-3 px-6 2xl:text-md text-sm font-medium ${tab.check.includes(currentPath) ? "text-blue_primary" : "text-light"} `}>
+        <p className={`wlmi-py-3 wlmi-px-6 2xl:wlmi-text-md wlmi-text-sm wlmi-font-medium ${tab.check.includes(currentPath) ? "wlmi-text-blue_primary" : "wlmi-text-light"} `}>
             {tab.label}
         </p>
         {tab.check.includes(currentPath) &&
             <span
-                className={`h-1 absolute rounded-t-lg bg-blue_primary transition duration-200 ease-in bottom-0  left-2.5 w-[75%]`}/>}
+                className={`wlmi-h-1 wlmi-absolute wlmi-rounded-t-lg wlmi-bg-blue_primary wlmi-transition wlmi-duration-200 wlmi-ease-in wlmi-bottom-0  wlmi-left-2.5 wlmi-w-[75%]`}/>}
     </Link>
 };
 

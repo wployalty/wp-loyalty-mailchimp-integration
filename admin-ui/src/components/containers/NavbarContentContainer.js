@@ -4,7 +4,7 @@ import RouterContainer from "../routes/RouterContainer";
 import {HashRouter} from "react-router-dom";
 
 const NavbarContentContainer = (props) => {
-    return <div className={`flex flex-col`}>
+    return <div className={`wlmi-flex wlmi-flex-col`}>
 
         {/* ************************ content wrapper ********************************** */}
         <HashRouter>

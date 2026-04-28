@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import "./styles/tailwind.generated.css";
+import "./styles/tailwind.css";
 import App from "./App";
 
 let target = document.getElementById("wlmi-admin-main");

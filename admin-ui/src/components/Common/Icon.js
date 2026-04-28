@@ -3,8 +3,8 @@ import { CommonContext } from "../../Context";
 
 const Icon = ({
                   icon,
-                  fontSize = "text-sm 2xl:text-md",
-                  fontWeight = "font-medium",
+                  fontSize = "wlmi-text-sm 2xl:wlmi-text-md",
+                  fontWeight = "wlmi-font-medium",
                   color,
                   click,
                   opactity,
@@ -26,7 +26,7 @@ const Icon = ({
         <i
             onClick={click}
             style={{ color: `${resolvedColor}` }}
-            className={`wlr wlrf-${icon} cursor-pointer ${fontSize} ${show} ${width}
+            className={`wlr wlrf-${icon} wlmi-cursor-pointer ${fontSize} ${show} ${width}
    ${fontWeight} ${extraStyles}
    ${opactity}
     `}

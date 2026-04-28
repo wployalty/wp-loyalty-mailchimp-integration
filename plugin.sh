@@ -2,6 +2,7 @@
 echo "Plugin Build Script"
 current_dir="$PWD"
 react_folder_path=$current_dir"/admin-ui"
+react_css_dist_path=$current_dir"/assets/admin/css/dist"
 react_js_dist_path=$current_dir"/assets/admin/js/dist"
 react_node_module_path=$current_dir"/admin-ui/node_modules"
 
@@ -21,6 +22,7 @@ composer_run() {
   echo "Composer Done"
   echo "Admin UI NPM"
   rm -r "$react_node_module_path"
+  rm -r "$react_css_dist_path"
   rm -r "$react_js_dist_path"
   # shellcheck disable=SC2164
   cd "$react_folder_path"

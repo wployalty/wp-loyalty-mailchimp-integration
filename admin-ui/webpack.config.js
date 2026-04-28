@@ -2,7 +2,16 @@ const webpack = require("webpack");
 const react = new webpack.ProvidePlugin({
     React: "react",
 });
-module.exports = {
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+
+module.exports = (env, argv) => {
+    const isProd = argv && argv.mode === "production";
+    const cssFilename = isProd
+        ? "../assets/admin/css/dist/style.min.css"
+        : "../assets/admin/css/dist/style.css";
+
+    return {
     entry: "./src/index.js",
     output: {
         path: __dirname,
@@ -24,9 +33,18 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: ["style-loader", "css-loader", "postcss-loader"],
+                use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
             },
         ],
     },
-    plugins: [react],
+    optimization: {
+        minimizer: [
+            "...",
+            new CssMinimizerPlugin(),
+        ],
+    },
+    plugins: [react, new MiniCssExtractPlugin({
+        filename: cssFilename,
+    })],
+};
 };

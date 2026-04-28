@@ -4,6 +4,7 @@ module.exports = {
     presets: [],
     darkMode: 'media', // or 'class'
     important: true,
+    prefix: 'wlmi-',
     theme: {
         screens: {
             sm: '640px',
