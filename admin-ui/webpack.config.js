@@ -2,6 +2,8 @@ const webpack = require("webpack");
 const react = new webpack.ProvidePlugin({
     React: "react",
 });
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+
 module.exports = {
     entry: "./src/index.js",
     output: {
@@ -24,9 +26,11 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: ["style-loader", "css-loader", "postcss-loader"],
+                use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
             },
         ],
     },
-    plugins: [react],
+    plugins: [react, new MiniCssExtractPlugin({
+        filename: "../assets/admin/css/dist/style.css"
+    })],
 };
