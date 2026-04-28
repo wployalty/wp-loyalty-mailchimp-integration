@@ -5,6 +5,136 @@ namespace WLMI\App\Helper;
 defined( 'ABSPATH' ) || exit;
 
 class File {
+	/**
+	 * Ensure directory exists (recursive).
+	 *
+	 * @param string $dir Directory path.
+	 *
+	 * @return bool
+	 */
+	public static function ensureDir( string $dir ): bool {
+		if ( empty( $dir ) ) {
+			return false;
+		}
+
+		if ( self::exists( $dir ) && self::isDir( $dir ) ) {
+			return true;
+		}
+
+		return wp_mkdir_p( $dir );
+	}
+
+	/**
+	 * Check if path is writable using WP_Filesystem when possible.
+	 *
+	 * @param string $path
+	 *
+	 * @return bool
+	 */
+	public static function isWritable( string $path ): bool {
+		$wp_fs = self::getFilesystem();
+		if ( ! $wp_fs ) {
+			return is_writable( $path );
+		}
+
+		return $wp_fs->is_writable( $path );
+	}
+
+	/**
+	 * Set file/folder permissions recursively (mirrors wp-loyalty-rules CsvHelper approach).
+	 *
+	 * @param string $path
+	 * @param string $filemode
+	 * @param string $foldermode
+	 *
+	 * @return bool
+	 */
+	public static function setPermissions( string $path, string $filemode = '0644', string $foldermode = '0755' ): bool {
+		$wp_fs = self::getFilesystem();
+		if ( ! $wp_fs ) {
+			return false;
+		}
+
+		$ret = true;
+		if ( is_dir( $path ) ) {
+			$dh = @opendir( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( $dh === false ) {
+				return false;
+			}
+
+			while ( ( $file = readdir( $dh ) ) !== false ) {
+				if ( $file === '.' || $file === '..' ) {
+					continue;
+				}
+				$fullpath = rtrim( $path, '/' ) . '/' . $file;
+				if ( is_dir( $fullpath ) ) {
+					if ( ! self::setPermissions( $fullpath, $filemode, $foldermode ) ) {
+						$ret = false;
+					}
+				} else {
+					if ( ! $wp_fs->chmod( $fullpath, octdec( $filemode ) ) ) {
+						$ret = false;
+					}
+				}
+			}
+
+			closedir( $dh );
+
+			if ( ! $wp_fs->chmod( $path, octdec( $foldermode ) ) ) {
+				$ret = false;
+			}
+		} else {
+			$ret = $wp_fs->chmod( $path, octdec( $filemode ) );
+		}
+
+		return $ret;
+	}
+
+	/**
+	 * Move a file safely using WP_Filesystem and then fix permissions.
+	 *
+	 * @param string $src
+	 * @param string $dest
+	 *
+	 * @return bool
+	 */
+	public static function move( string $src, string $dest ): bool {
+		$wp_fs = self::getFilesystem();
+		if ( ! $wp_fs ) {
+			return false;
+		}
+
+		$base_dir = dirname( $dest );
+		if ( ! $wp_fs->is_writable( $base_dir ) ) {
+			return false;
+		}
+
+		$ok = $wp_fs->move( $src, $dest, true );
+		if ( ! $ok ) {
+			return false;
+		}
+
+		return self::setPermissions( $dest );
+	}
+
+	/**
+	 * Delete a file after attempting to chmod it (mirrors wp-loyalty-rules CsvHelper approach).
+	 *
+	 * @param string $path
+	 *
+	 * @return bool
+	 */
+	public static function deleteWithPerms( string $path ): bool {
+		$wp_fs = self::getFilesystem();
+		if ( ! $wp_fs ) {
+			return false;
+		}
+
+		// Best effort; some hosts will block chmod.
+		$wp_fs->chmod( $path, 0777 );
+
+		return self::delete( $path );
+	}
 
 	/**
 	 * Get WP_Filesystem object.

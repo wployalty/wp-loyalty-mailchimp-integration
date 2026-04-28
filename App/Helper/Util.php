@@ -5,67 +5,6 @@ defined( 'ABSPATH' ) || exit;
 
 class Util {
 	/**
-	 * Get the admin settings page URL for this plugin.
-	 * The page/tab to load is determined by the optional param (hash route).
-	 *
-	 * @param string $page Optional. Hash route segment to open (e.g. 'license', 'settings'). Results in #/license, #/settings.
-	 * @return string Full URL to the plugin admin page, with optional hash.
-	 */
-	public static function getSettingsPageUrl( string $page = '' ): string {
-		$url = admin_url( 'admin.php?' . http_build_query( [ 'page' => WLMI_PLUGIN_SLUG ] ) );
-		if ( $page !== '' ) {
-			$url .= '#/' . ltrim( $page, '/' );
-		}
-
-		return $url;
-	}
-
-	/**
-	 * Check if a given string is a valid JSON format.
-	 *
-	 * @param string $string The string to check for JSON format.
-	 *
-	 * @return bool Returns true if the string is in valid JSON format, false otherwise.
-	 */
-	public static function isJson( $string ) {
-		json_decode( $string );
-
-		return ( json_last_error() == JSON_ERROR_NONE );
-	}
-
-	/**
-	 * Prepare the date for display before displaying.
-	 *
-	 * @param mixed $date The date to be formatted.
-	 * @param string $format The format in which the date should be displayed. Default is empty.
-	 *
-	 * @return mixed Formatted date for display or null if date is empty.
-	 */
-	public static function beforeDisplayDate( $date, $format = '' ) {
-		if ( empty( $format ) ) {
-			$format = get_option( 'date_format', 'Y-m-d H:i:s' );
-		}
-		if ( empty( $date ) ) {
-			return null;
-		}
-		if ( (int) $date != $date ) {
-			return $date;
-		}
-		$converted_time = self::convertUTCtoWP( gmdate( 'Y-m-d H:i:s', $date ), $format );
-		if ( apply_filters( 'wlmi_translate_display_date', true ) ) {
-			$datetime = \DateTime::createFromFormat( $format, $converted_time );
-			if ( $datetime !== false ) {
-				$time = $datetime->getTimestamp();
-			} else {
-				$time = strtotime( $converted_time );
-			}
-			$converted_time = date_i18n( $format, $time );
-		}
-
-		return $converted_time;
-	}
-
-	/**
 	 * Convert UTC timestamp to WordPress timezone.
 	 *
 	 * @param string $datetime The UTC date/time string to convert.
@@ -137,31 +76,6 @@ class Util {
 		return ! empty( $current_time_utc ) 
 			? self::formatDateTimeWP( $current_time_utc )
 			: current_time( 'mysql' );
-	}
-
-	/**
-	 * Converts the date format.
-	 *
-	 * @param string $date The date to convert.
-	 * @param string $format The format to convert the date into. If empty, the default WordPress date format will be used.
-	 *
-	 * @return string|null The converted date in the specified format, or null if input date is empty.
-	 */
-	public static function convertDateFormat( $date, $format = '' ) {
-		if ( empty( $format ) ) {
-			$format = get_option( 'date_format', 'Y-m-d H:i:s' );
-		}
-		if ( empty( $date ) ) {
-			return null;
-		}
-		$date             = new \DateTime( $date );
-		$converted_format = $date->format( $format );
-		if ( apply_filters( 'wlmi_translate_display_date', false ) ) {
-			$time             = strtotime( $converted_format );
-			$converted_format = date_i18n( $format, $time );
-		}
-
-		return $converted_format;
 	}
 
 	/**

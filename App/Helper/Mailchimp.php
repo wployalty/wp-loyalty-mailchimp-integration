@@ -79,19 +79,25 @@ class Mailchimp {
 		}
 
 		$transient_key = 'wlmi_connection_status';
+		$cache_time    = (int) apply_filters( 'wlmi_connection_cache_duration', 2 * DAY_IN_SECONDS );
+		$api_key_hash  = self::getConnectionApiKeyHash( $api_key );
 
 		if ( ! $force_refresh ) {
 			$cached = get_transient( $transient_key );
-			if ( $cached !== false ) {
-				return (bool) $cached;
+			if ( self::isConnectionCacheValid( $cached, $api_key_hash, $server, $cache_time ) ) {
+				return (bool) $cached['connected'];
 			}
 		}
 
 		$status = self::checkConnection( $api_key, $server );
 
-		if ( $status ) {
-			$cache_time = (int) apply_filters( 'wlmi_connection_cache_duration', 5 * MINUTE_IN_SECONDS );
-			set_transient( $transient_key, $status, $cache_time );
+		if ( $cache_time > 0 ) {
+			set_transient( $transient_key, [
+				'connected'    => (bool) $status,
+				'checked_at'   => time(),
+				'api_key_hash' => $api_key_hash,
+				'server'       => (string) $server,
+			], $cache_time );
 		}
 
 		return $status;
@@ -104,6 +110,52 @@ class Mailchimp {
 	 */
 	public static function clearConnectionCache() {
 		delete_transient( 'wlmi_connection_status' );
+	}
+
+	/**
+	 * Build a non-reversible API key hash for connection cache validation.
+	 *
+	 * @param string $api_key
+	 *
+	 * @return string
+	 */
+	protected static function getConnectionApiKeyHash( $api_key ): string {
+		return hash( 'sha256', (string) $api_key );
+	}
+
+	/**
+	 * Validate the cached connection status belongs to the current credentials
+	 * and is still within the configured cache duration.
+	 *
+	 * @param mixed  $cached
+	 * @param string $api_key_hash
+	 * @param string $server
+	 * @param int    $cache_time
+	 *
+	 * @return bool
+	 */
+	protected static function isConnectionCacheValid( $cached, string $api_key_hash, $server, int $cache_time ): bool {
+		if ( ! is_array( $cached ) ) {
+			return false;
+		}
+
+		if ( ! array_key_exists( 'connected', $cached ) || empty( $cached['checked_at'] ) ) {
+			return false;
+		}
+
+		if ( ( $cached['api_key_hash'] ?? '' ) !== $api_key_hash ) {
+			return false;
+		}
+
+		if ( (string) ( $cached['server'] ?? '' ) !== (string) $server ) {
+			return false;
+		}
+
+		if ( $cache_time <= 0 ) {
+			return false;
+		}
+
+		return ( time() - (int) $cached['checked_at'] ) < $cache_time;
 	}
 
 	/**

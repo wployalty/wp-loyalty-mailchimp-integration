@@ -14,7 +14,7 @@ class Plugin {
 	public static function checkDependencies( bool $allow_exit = false ): bool {
 		if ( ! self::isPHPCompatible() ) {
 			// translators: First %s will replace plugin name, Second %s replace minimum PHP version
-			$message = sprintf( esc_html__( '%1$s requires minimum PHP version %2$s', 'wp-loyalty-mailchimp-integration' ), WLMI_PLUGIN_NAME, WLMI_MINIMUM_PHP_VERSION );
+			$message = sprintf( '%1$s requires minimum PHP version %2$s', WLMI_PLUGIN_NAME, WLMI_MINIMUM_PHP_VERSION );
 			$allow_exit ? die( esc_html( $message ) ) : WC::adminNotice( esc_html( $message ), 'error' );
 
 			return false;
@@ -22,7 +22,7 @@ class Plugin {
 
 		if ( ! self::isWordPressCompatible() ) {
 			// translators: First %s will replace plugin name, Second %s replace a minimum WordPress version
-			$message = sprintf( esc_html__( '%1$s requires minimum WordPress version %2$s', 'wp-loyalty-mailchimp-integration' ), WLMI_PLUGIN_NAME, WLMI_MINIMUM_WP_VERSION );
+			$message = sprintf( '%1$s requires minimum WordPress version %2$s', WLMI_PLUGIN_NAME, WLMI_MINIMUM_WP_VERSION );
 			$allow_exit ? exit( esc_html( $message ) ) : WC::adminNotice( esc_html( $message ), 'error' );
 
 			return false;
@@ -30,7 +30,7 @@ class Plugin {
 
 		if ( ! self::isActive( 'woocommerce/woocommerce.php' ) ) {
 			// translators: 1. %s will replace plugin name
-			$message = sprintf( esc_html__( '%1$s requires WooCommerce to be installed and activated in order to be used.', 'wp-loyalty-mailchimp-integration' ), WLMI_PLUGIN_NAME );
+			$message = sprintf( '%1$s requires WooCommerce to be installed and activated in order to be used.', WLMI_PLUGIN_NAME );
 			$allow_exit ? exit( esc_html( $message ) ) : WC::adminNotice( esc_html( $message ), 'error' );
 
 			return false;
@@ -38,14 +38,14 @@ class Plugin {
 
 		if ( ! self::isWooCompatible() ) {
 			// translators: 1. %s will replace plugin name, 2. %s replace WooCommerce version
-			$message = sprintf( esc_html__( '%1$s requires minimum Woocommerce version %2$s', 'wp-loyalty-mailchimp-integration' ), WLMI_PLUGIN_NAME, WLMI_MINIMUM_WC_VERSION );
+			$message = sprintf( '%1$s requires minimum Woocommerce version %2$s', WLMI_PLUGIN_NAME, WLMI_MINIMUM_WC_VERSION );
 			$allow_exit ? exit( esc_html( $message ) ) : WC::adminNotice( esc_html( $message ), 'error' );
 
 			return false;
 		}
 		if ( ! self::isLoyaltyCompatible() ) {
 			// translators: 1. %s will replace plugin name, 2. %s replace WooCommerce version
-			$message = sprintf( esc_html__( '%1$s requires minimum loyalty version %2$s', 'wp-loyalty-mailchimp-integration' ), WLMI_PLUGIN_NAME, WLMI_MINIMUM_WLR_VERSION );
+			$message = sprintf( '%1$s requires minimum loyalty version %2$s', WLMI_PLUGIN_NAME, WLMI_MINIMUM_WLR_VERSION );
 			$allow_exit ? exit( esc_html( $message ) ) : WC::adminNotice( esc_html( $message ), 'error' );
 
 			return false;

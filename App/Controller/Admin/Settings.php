@@ -63,7 +63,7 @@ class Settings {
 				wp_send_json_error( [ 'message' => __( 'Invalid API key format', 'wp-loyalty-mailchimp-integration' ) ] );
 			}
 			$new_server = substr( $incoming_api_key, $dash_pos + 1 );
-			$is_connected = MailchimpHelper::checkConnection( $incoming_api_key, $new_server );
+			$is_connected = MailchimpHelper::getConnectionStatus( $incoming_api_key, $new_server, true );
 			if ( ! $is_connected ) {
 				wp_send_json_error( [ 'message' => __( 'Connection failed with the provided API key', 'wp-loyalty-mailchimp-integration' ) ] );
 			}

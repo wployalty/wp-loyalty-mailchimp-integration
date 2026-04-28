@@ -21,7 +21,7 @@ class Api {
 	 *
 	 * @return void
 	 */
-	public static function cleanupMigrationData( ?string $list_id = null ): void {
+	public static function cleanupMigrationData( $list_id = null ) {
 		if ( ! empty( $list_id ) ) {
 			self::cleanupMigrationDataForList( $list_id );
 		} else {
@@ -42,7 +42,7 @@ class Api {
 	 *
 	 * @return void
 	 */
-	protected static function cleanupMigrationDataForList( string $list_id ): void {
+	protected static function cleanupMigrationDataForList( $list_id ) {
 		delete_option( 'wlmi_migration_batches_' . $list_id );
 		delete_option( 'wlmi_migration_stats_' . $list_id );
 		delete_option( 'wlmi_migration_running_' . $list_id );
@@ -50,10 +50,29 @@ class Api {
 		delete_option( 'wlmi_sync_after_migration_' . $list_id );
 		delete_transient( 'wlmi_scheduling_lock_' . $list_id );
 
-		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
+		$safe_list_id = preg_replace( '/[^a-zA-Z0-9_\-]/', '', (string) $list_id ) ?? '';
+		$base_dir     = ( defined( 'WLMI_PLUGIN_PATH' ) ? rtrim( (string) WLMI_PLUGIN_PATH, '/' ) . '/App/File/' : '' );
+		if ( empty( $base_dir ) || empty( $safe_list_id ) ) {
+			return;
+		}
+
+		$list_dir = $base_dir . $safe_list_id . '/';
+		$csv_path = $list_dir . 'failed-users.csv';
+
 		if ( FileHelper::exists( $csv_path ) ) {
-			FileHelper::delete( $csv_path );
+			FileHelper::deleteWithPerms( $csv_path );
+		}
+
+		// If the list directory is now empty (or only contains index.html), remove it.
+		if ( is_dir( $list_dir ) ) {
+			$files = @scandir( $list_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( is_array( $files ) ) {
+				$entries = array_values( array_diff( $files, [ '.', '..' ] ) );
+				$entries = array_values( array_diff( $entries, [ 'index.html' ] ) );
+				if ( empty( $entries ) ) {
+					FileHelper::delete( $list_dir, true );
+				}
+			}
 		}
 	}
 
@@ -62,7 +81,7 @@ class Api {
 	 *
 	 * @return void
 	 */
-	protected static function unscheduleAllMigrationActions(): void {
+	protected static function unscheduleAllMigrationActions() {
 		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
 			return;
 		}
@@ -76,7 +95,7 @@ class Api {
 	 *
 	 * @return void
 	 */
-	protected static function unscheduleAllSyncActions(): void {
+	protected static function unscheduleAllSyncActions() {
 		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
 			return;
 		}
@@ -104,7 +123,7 @@ class Api {
 		}
 		$server = substr( $api_key, $dash_pos + 1 );
 
-		$is_connected = MailchimpHelper::checkConnection( $api_key, $server );
+		$is_connected = MailchimpHelper::getConnectionStatus( $api_key, $server, true );
 
 		if ( ! $is_connected ) {
 			wp_send_json_error( [ 'message' => __( 'Connection failed', 'wp-loyalty-mailchimp-integration' ) ] );
@@ -116,7 +135,6 @@ class Api {
 		update_option( 'wlmi_settings', $settings );
 
 		SettingsHelper::clearCache();
-		MailchimpHelper::clearConnectionCache();
 
 		wp_send_json_success( [ 'message' => __( 'Connected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
 	}
@@ -266,7 +284,7 @@ class Api {
 				'has_any_pending'       => false,
 				'has_first_pending'     => false,
 				'first_error_file_url'  => null,
-				'failed_users_csv_path' => null,
+				'failed_users_csv_url'  => null,
 				'csv_processing_status' => 'not_started',
 				'last_checked_at'       => $last_checked_at,
 			] );
@@ -303,40 +321,33 @@ class Api {
 			wp_die( esc_html__( 'No list configured', 'wp-loyalty-mailchimp-integration' ) );
 		}
 
-		// Build expected CSV path
-		$log_base_dir = WP_CONTENT_DIR . '/wlmi-migration-logs/';
-		$csv_path     = $log_base_dir . $list_id . '/failed-users.csv';
+		$safe_list_id = preg_replace( '/[^a-zA-Z0-9_\-]/', '', (string) $list_id ) ?? '';
+		if ( empty( $safe_list_id ) ) {
+			wp_die( esc_html__( 'Invalid list configured', 'wp-loyalty-mailchimp-integration' ) );
+		}
 
-		// Security: Validate path is within expected directory (prevent directory traversal)
-		$real_csv_path     = realpath( $csv_path );
-		$real_log_base_dir = realpath( $log_base_dir );
+		if ( ! defined( 'WLMI_PLUGIN_PATH' ) || ! defined( 'WLMI_PLUGIN_URL' ) ) {
+			wp_die( esc_html__( 'Plugin path not available', 'wp-loyalty-mailchimp-integration' ) );
+		}
 
-		if ( $real_csv_path === false || $real_log_base_dir === false ) {
+		$base_dir = rtrim( (string) WLMI_PLUGIN_PATH, '/' ) . '/App/File/';
+		$csv_path = $base_dir . $safe_list_id . '/failed-users.csv';
+
+		$real_csv_path  = realpath( $csv_path );
+		$real_base_dir  = realpath( $base_dir );
+		if ( $real_csv_path === false || $real_base_dir === false ) {
 			wp_die( esc_html__( 'CSV file not found', 'wp-loyalty-mailchimp-integration' ) );
 		}
-
-		if ( strpos( $real_csv_path, $real_log_base_dir ) !== 0 ) {
+		if ( strpos( $real_csv_path, $real_base_dir ) !== 0 ) {
 			wp_die( esc_html__( 'Invalid file path', 'wp-loyalty-mailchimp-integration' ) );
 		}
-
-		// Check file exists and is readable
 		if ( ! FileHelper::exists( $csv_path ) || ! FileHelper::isReadable( $csv_path ) ) {
 			wp_die( esc_html__( 'CSV file not found or not readable', 'wp-loyalty-mailchimp-integration' ) );
 		}
 
-		// Serve file with proper headers
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="failed-users-' . esc_attr( $list_id ) . '.csv"' );
-		header( 'Content-Length: ' . filesize( $csv_path ) );
-		header( 'Cache-Control: no-cache, must-revalidate' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
-
-		$content = FileHelper::getContent( $csv_path );
-		if ( $content !== false ) {
-			//phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo $content;
-		}
+		// Mirror wp-loyalty-rules: direct download URL to file under plugin.
+		$csv_url = rtrim( (string) WLMI_PLUGIN_URL, '/' ) . '/App/File/' . rawurlencode( $safe_list_id ) . '/failed-users.csv';
+		wp_safe_redirect( $csv_url );
 		exit;
 	}
 
