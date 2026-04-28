@@ -123,7 +123,7 @@ class Api {
 		}
 		$server = substr( $api_key, $dash_pos + 1 );
 
-		$is_connected = MailchimpHelper::checkConnection( $api_key, $server );
+		$is_connected = MailchimpHelper::getConnectionStatus( $api_key, $server, true );
 
 		if ( ! $is_connected ) {
 			wp_send_json_error( [ 'message' => __( 'Connection failed', 'wp-loyalty-mailchimp-integration' ) ] );
@@ -135,7 +135,6 @@ class Api {
 		update_option( 'wlmi_settings', $settings );
 
 		SettingsHelper::clearCache();
-		MailchimpHelper::clearConnectionCache();
 
 		wp_send_json_success( [ 'message' => __( 'Connected successfully!', 'wp-loyalty-mailchimp-integration' ) ] );
 	}
