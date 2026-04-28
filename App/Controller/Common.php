@@ -81,7 +81,7 @@ class Common {
 
 		wp_enqueue_style( WLMI_PLUGIN_SLUG . '-wlr-font', WLR_PLUGIN_URL . 'Assets/Site/Css/wlr-fonts' . $suffix . '.css', [], WLR_PLUGIN_VERSION . $add_cache_fix );
 		wp_enqueue_style( WLR_PLUGIN_SLUG . '-alertify', WLR_PLUGIN_URL . 'Assets/Admin/Css/alertify.css', [], WLR_PLUGIN_VERSION . $add_cache_fix );
-		wp_enqueue_style( WLMI_PLUGIN_SLUG . '-bundle-css', WLMI_PLUGIN_URL . 'assets/admin/css/dist/style' . $suffix . '.css', [], WLMI_PLUGIN_VERSION . $add_cache_fix );
+		wp_enqueue_style( WLMI_PLUGIN_SLUG . '-bundle-css', WLMI_PLUGIN_URL . 'assets/admin/css/dist/style.min.css', [], WLMI_PLUGIN_VERSION . $add_cache_fix );
 		// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooter
 		wp_enqueue_script( WLR_PLUGIN_SLUG . '-alertify', WLR_PLUGIN_URL . 'Assets/Admin/Js/alertify.js', [ 'jquery' ], WLR_PLUGIN_VERSION . $add_cache_fix );
 		$common_path   = WLMI_PLUGIN_DIR . '/assets/admin/js/dist';
