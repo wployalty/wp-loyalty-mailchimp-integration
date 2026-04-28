@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-04-27T12:45:15+00:00\n"
+"POT-Creation-Date: 2026-04-28T07:20:13+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: wp-loyalty-mailchimp-integration\n"
@@ -40,10 +40,10 @@ msgid "https://wployalty.net/"
 msgstr ""
 
 #: App/Controller/Admin/Api.php:113
-#: App/Controller/Admin/Api.php:150
-#: App/Controller/Admin/Api.php:175
-#: App/Controller/Admin/Api.php:269
-#: App/Controller/Admin/Api.php:365
+#: App/Controller/Admin/Api.php:149
+#: App/Controller/Admin/Api.php:174
+#: App/Controller/Admin/Api.php:268
+#: App/Controller/Admin/Api.php:364
 #: App/Controller/Admin/Labels.php:17
 #: App/Controller/Admin/Labels.php:40
 #: App/Controller/Admin/Settings.php:23
@@ -64,80 +64,80 @@ msgstr ""
 msgid "Connection failed"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:140
+#: App/Controller/Admin/Api.php:139
 msgid "Connected successfully!"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:165
+#: App/Controller/Admin/Api.php:164
 msgid "Disconnected successfully!"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:187
-#: App/Controller/Admin/Api.php:297
+#: App/Controller/Admin/Api.php:186
+#: App/Controller/Admin/Api.php:296
 msgid "API connection not configured"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:258
+#: App/Controller/Admin/Api.php:257
 msgid "Failed to fetch lists"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:304
+#: App/Controller/Admin/Api.php:303
 msgid "Failed to fetch migration status"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:315
+#: App/Controller/Admin/Api.php:314
 msgid "Security check failed"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:322
+#: App/Controller/Admin/Api.php:321
 msgid "No list configured"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:327
+#: App/Controller/Admin/Api.php:326
 msgid "Invalid list configured"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:331
+#: App/Controller/Admin/Api.php:330
 msgid "Plugin path not available"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:340
+#: App/Controller/Admin/Api.php:339
 msgid "CSV file not found"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:343
+#: App/Controller/Admin/Api.php:342
 msgid "Invalid file path"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:346
+#: App/Controller/Admin/Api.php:345
 msgid "CSV file not found or not readable"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:372
+#: App/Controller/Admin/Api.php:371
 msgid "No list configured for synchronization"
 msgstr ""
 
-#: App/Controller/Admin/Api.php:382
+#: App/Controller/Admin/Api.php:381
 msgid "A synchronization run is already in progress and will continue processing all users batch by batch."
 msgstr ""
 
-#: App/Controller/Admin/Api.php:390
+#: App/Controller/Admin/Api.php:389
 msgid "A new synchronization run has been queued. It will start after the current batch chain finishes."
 msgstr ""
 
-#: App/Controller/Admin/Api.php:397
+#: App/Controller/Admin/Api.php:396
 msgid "Synchronization run started successfully. The first batch has been queued."
 msgstr ""
 
-#: App/Controller/Admin/Api.php:401
+#: App/Controller/Admin/Api.php:400
 msgid "A synchronization run is already being started. Please wait for the current batch chain to continue."
 msgstr ""
 
-#: App/Controller/Admin/Api.php:403
+#: App/Controller/Admin/Api.php:402
 msgid "Synchronization could not be started because Action Scheduler is unavailable."
 msgstr ""
 
-#: App/Controller/Admin/Api.php:412
+#: App/Controller/Admin/Api.php:411
 msgid "Failed to trigger synchronization"
 msgstr ""
 
@@ -361,36 +361,6 @@ msgstr ""
 
 #: App/Controller/Admin/Settings.php:130
 msgid "Settings saved!"
-msgstr ""
-
-#. translators: First %s will replace plugin name, Second %s replace minimum PHP version
-#: App/Helper/Plugin.php:17
-#, php-format
-msgid "%1$s requires minimum PHP version %2$s"
-msgstr ""
-
-#. translators: First %s will replace plugin name, Second %s replace a minimum WordPress version
-#: App/Helper/Plugin.php:25
-#, php-format
-msgid "%1$s requires minimum WordPress version %2$s"
-msgstr ""
-
-#. translators: 1. %s will replace plugin name
-#: App/Helper/Plugin.php:33
-#, php-format
-msgid "%1$s requires WooCommerce to be installed and activated in order to be used."
-msgstr ""
-
-#. translators: 1. %s will replace plugin name, 2. %s replace WooCommerce version
-#: App/Helper/Plugin.php:41
-#, php-format
-msgid "%1$s requires minimum Woocommerce version %2$s"
-msgstr ""
-
-#. translators: 1. %s will replace plugin name, 2. %s replace WooCommerce version
-#: App/Helper/Plugin.php:48
-#, php-format
-msgid "%1$s requires minimum loyalty version %2$s"
 msgstr ""
 
 #: App/Helper/Validation.php:98

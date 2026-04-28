@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-#wll-admin-main * {
+#wlmi-admin-main * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -17,27 +17,27 @@
     color: inherit !important;
 }
 
-.wp-loyalty-button {
+.wlmi-button {
     transition: all 0.1s ease;
 }
 
-.wp-loyalty-button:active {
+.wlmi-button:active {
     filter: brightness(0.95);
     transform: scale(0.96);
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
-.wll_no-scrollbar::-webkit-scrollbar {
+.wlmi_no-scrollbar::-webkit-scrollbar {
     display: none;
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
-.wll_no-scrollbar {
+.wlmi_no-scrollbar {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
 }
 
-.wll_input-error {
+.wlmi_input-error {
     border: 2px solid rgb(233, 100, 100) !important;
     border-radius: 4px !important;
     background-color: #fef4f45b !important;
@@ -183,4 +183,4 @@
     }
 }
 
-/*# sourceMappingURL=wll-admin.css.map */
+/*# sourceMappingURL=wlmi-admin.css.map */

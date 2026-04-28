@@ -1,30 +1,30 @@
 import React from 'react';
 
 const Button = ({
-                    bgColor = "bg-blue_primary",
-                    textStyle = "text-white text-xs 2xl:text-sm_14_l_20 ",
-                    padding = "p-3.5",
+                    bgColor = "wlmi-bg-blue_primary",
+                    textStyle = "wlmi-text-white wlmi-text-xs 2xl:wlmi-text-sm_14_l_20 ",
+                    padding = "wlmi-p-3.5",
                     minwidth = "80px",
                     children,
                     icon = null,
                     others = "",
                     click = null,
                     outline = false,
-                    outlineStyle = "border-primary",
+                    outlineStyle = "wlmi-border-primary",
                     disabled = false,
                     title = "",
                     shadow = false,
                     id = id,
                     extraStyle,
                 }) => {
-    const outlineStyles = outline ? `border ${outlineStyle}` : "";
+    const outlineStyles = outline ? `wlmi-border ${outlineStyle}` : "";
     return (
         <button
             id={id}
             type="button"
-            className={`antialiased font-medium no-underline  flex items-center justify-center space-x-2 outline-none tracking-normal whitespace-nowrap wp-loyalty-button ${shadow && "hover:shadow-lg "}
+            className={`wlmi-antialiased wlmi-font-medium wlmi-no-underline  wlmi-flex wlmi-items-center wlmi-justify-center wlmi-space-x-2 wlmi-outline-none wlmi-tracking-normal wlmi-whitespace-nowrap wlmi-button ${shadow && "hover:wlmi-shadow-lg "}
              ${bgColor} ${textStyle} ${padding} ${others}
-              ${outlineStyles} min-w-max rounded-md ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              ${outlineStyles} wlmi-min-w-max wlmi-rounded-md ${disabled ? "wlmi-opacity-50 wlmi-cursor-not-allowed" : "wlmi-cursor-pointer"}`}
             onClick={disabled ? () => {} : click}
             title={title}
             style={{background: `${extraStyle} `}}
@@ -32,7 +32,7 @@ const Button = ({
             {icon}
             <span style={{
                 marginTop: "2px"
-            }} className="text-xs 2xl:text-sm font-semibold  ">{children}</span>
+            }} className="wlmi-text-xs 2xl:wlmi-text-sm wlmi-font-semibold  ">{children}</span>
         </button>
     );
 };

@@ -6,7 +6,7 @@ const Input = ({
                    value,
                    required,
                    onChange,
-                   textColor = "text-dark",
+                   textColor = "wlmi-text-dark",
                    border,
                    others = "",
                    onfocus = null,
@@ -15,9 +15,9 @@ const Input = ({
                    max = null,
                    error = false,
                    id,
-                   padding = "2xl:p-2.5 p-1.5",
+                   padding = "2xl:wlmi-p-2.5 wlmi-p-1.5",
                    onKeyDown,
-                   height = `${["text", "number"].includes(type) ? "h-11" : "h-20"}`
+                   height = `${["text", "number"].includes(type) ? "wlmi-h-11" : "wlmi-h-20"}`
                }) => {
     return type === "textarea" ? (
             <textarea
@@ -25,7 +25,7 @@ const Input = ({
                 value={value}
                 required={required}
                 placeholder={placeHolder}
-                className={`${padding}  transition duration-200 ease-in focus:outline-none rounded focus:shadow-none antialiased bg-white ${border} 2xl:focus:border-2  w-full  ${textColor} ${others} ${error && "wll_input-error"}`}
+                className={`${padding}  wlmi-transition wlmi-duration-200 wlmi-ease-in focus:wlmi-outline-none wlmi-rounded focus:wlmi-shadow-none wlmi-antialiased wlmi-bg-white ${border} 2xl:focus:wlmi-border-2  wlmi-w-full  ${textColor} ${others} ${error && "wlmi_input-error"}`}
                 onChange={onChange}
                 onFocus={onfocus}
             />
@@ -39,8 +39,8 @@ const Input = ({
                 min={type == "number" ? 0 && !min : min}
                 max={max}
                 placeholder={placeHolder}
-                className={`${padding} ${height} transition duration-200 ease-in focus:outline-none rounded focus:shadow-none antialiased bg-white ${border} 
-      2xl:focus:border-2 w-full ${textColor}  tracking-wider ${others} ${error && "wll_input-error"} `}
+                className={`${padding} ${height} wlmi-transition wlmi-duration-200 wlmi-ease-in focus:wlmi-outline-none wlmi-rounded focus:wlmi-shadow-none wlmi-antialiased wlmi-bg-white ${border} 
+      2xl:focus:wlmi-border-2 wlmi-w-full ${textColor}  wlmi-tracking-wider ${others} ${error && "wlmi_input-error"} `}
                 onChange={onChange}
                 onFocus={onfocus}
                 onBlur={onblur}

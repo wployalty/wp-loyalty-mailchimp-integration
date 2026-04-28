@@ -6,7 +6,7 @@ const Settings = React.lazy(() => import(/* webpackChunkName: "Settings" */"../.
 const RouterContainer = () => {
     return (
         <div
-            className={`flex flex-col w-full min-h-[690px] justify-start px-8 py-6 rounded-xl bg-white border  border-light_border gap-6`}
+            className={`wlmi-flex wlmi-flex-col wlmi-w-full wlmi-min-h-[690px] wlmi-justify-start wlmi-px-8 wlmi-py-6 wlmi-rounded-xl wlmi-bg-white wlmi-border  wlmi-border-light_border wlmi-gap-6`}
         >
             <Routes>
                 <Route

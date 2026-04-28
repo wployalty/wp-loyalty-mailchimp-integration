@@ -68,17 +68,17 @@ const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected
     }
 
     return (
-        <div className="flex flex-col w-74_% 2xl:w-7/12 mt-3 xl:mt-4 2xl:mt-5">
-            <div className="flex items-center w-full gap-x-5">
-                <div className="flex-1">
+        <div className="wlmi-flex wlmi-flex-col wlmi-w-74_% 2xl:wlmi-w-7/12 wlmi-mt-3 xl:wlmi-mt-4 2xl:wlmi-mt-5">
+            <div className="wlmi-flex wlmi-items-center wlmi-w-full wlmi-gap-x-5">
+                <div className="wlmi-flex-1">
                     <Input
                         id="api_key"
                         type="text"
                         value={settings.api_key || ""}
                         placeHolder={labels.settings?.placeholder || "Enter your Mailchimp API Key"}
-                        border={`border-2 border-opacity-100 ${isConnected ? 'border-green-500' : 'border-red-600'}`}
-                        textColor={isConnected ? 'text-green-600' : 'text-red-600'}
-                        height="h-12"
+                        border={`wlmi-border-2 wlmi-border-opacity-100 ${isConnected ? 'wlmi-border-green-500' : 'wlmi-border-red-600'}`}
+                        textColor={isConnected ? 'wlmi-text-green-600' : 'wlmi-text-red-600'}
+                        height="wlmi-h-12"
                         onChange={(e) => {
                             setSettings({
                                 ...settings,
@@ -89,17 +89,17 @@ const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected
                     />
                 </div>
 
-                <div className="flex items-center">
+                <div className="wlmi-flex wlmi-items-center">
                     {!isConnected && (
                         <Button
                             id="connect_mailchimp"
                             icon={
-                                <i className="text-md text-white leading-0 antialiased wlr wlrf-save color-important" />
+                                <i className="wlmi-text-md wlmi-text-white leading-0 wlmi-antialiased wlr wlrf-save color-important" />
                             }
-                            textStyle="text-white font-medium text-sm_14_l_20"
-                            bgColor="bg-green-600"
-                            others="tracking-wide h-12 flex items-center"
-                            padding="px-5 py-3"
+                            textStyle="wlmi-text-white wlmi-font-medium wlmi-text-sm_14_l_20"
+                            bgColor="wlmi-bg-green-600"
+                            others="wlmi-tracking-wide wlmi-h-12 wlmi-flex wlmi-items-center"
+                            padding="wlmi-px-5 wlmi-py-3"
                             disabled={connectionLoading}
                             click={(e) => {
                                 e.preventDefault();
@@ -113,12 +113,12 @@ const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected
                         <Button
                             id="disconnect_mailchimp"
                             icon={
-                                <i className="text-md text-white leading-0 antialiased wlr wlrf-save color-important" />
+                                <i className="wlmi-text-md wlmi-text-white leading-0 wlmi-antialiased wlr wlrf-save color-important" />
                             }
-                            textStyle="text-white font-medium text-sm_14_l_20"
-                            bgColor="bg-red-600"
-                            others="tracking-wide h-12 flex items-center"
-                            padding="px-5 py-3"
+                            textStyle="wlmi-text-white wlmi-font-medium wlmi-text-sm_14_l_20"
+                            bgColor="wlmi-bg-red-600"
+                            others="wlmi-tracking-wide wlmi-h-12 wlmi-flex wlmi-items-center"
+                            padding="wlmi-px-5 wlmi-py-3"
                             disabled={connectionLoading}
                             click={(e) => {
                                 e.preventDefault();
@@ -130,11 +130,11 @@ const ConnectionSettings = ({ settings, setSettings, isConnected, setIsConnected
                     )}
                 </div>
             </div>
-            <div className="flex items-center gap-1 mt-2">
-                <span className="text-sm text-gray-600">
+            <div className="wlmi-flex wlmi-items-center wlmi-gap-1 wlmi-mt-2">
+                <span className="wlmi-text-sm wlmi-text-gray-600">
                     {labels.settings?.status || "Status"}:
                 </span>
-                <span className={`text-sm font-medium ${isConnected ? "text-green-600" : "text-red-600"}`}>
+                <span className={`wlmi-text-sm wlmi-font-medium ${isConnected ? "wlmi-text-green-600" : "wlmi-text-red-600"}`}>
                     {isConnected
                         ? (labels.settings?.active || "Active")
                         : (labels.settings?.inactive || "Inactive")}

@@ -6,17 +6,17 @@ const TitleActionContainer = ({ title, saveAction, saveDisabled = false, showSav
     const labels = React.useContext(UiLabelContext);
     const {appState} = React.useContext(CommonContext);
 
-    return <div className={`flex items-center justify-between gap-2 w-full`}>
+    return <div className={`wlmi-flex wlmi-items-center wlmi-justify-between wlmi-gap-2 wlmi-w-full`}>
         {/*left div*/}
-        <p className={`text-dark font-bold text-md tracking-[1.28px]`}>{title}</p>
+        <p className={`wlmi-text-dark wlmi-font-bold wlmi-text-md wlmi-tracking-[1.28px]`}>{title}</p>
         {/*right div*/}
-        <div className={`flex   items-center gap-2.5`}>
+        <div className={`wlmi-flex wlmi-items-center wlmi-gap-2.5`}>
             <Button
-                icon={<i className={`wlr wlrf-back text-md font-medium color-important`}/>}
+                icon={<i className={`wlr wlrf-back wlmi-text-md wlmi-font-medium color-important`}/>}
                 outline={true}
-                bgColor={"bg-white"}
-                outlineStyle={"border-light-border"}
-                textStyle={"text-light"}
+                bgColor={"wlmi-bg-white"}
+                outlineStyle={"wlmi-border-light_border"}
+                textStyle={"wlmi-text-light"}
                 click={() => location.replace(appState.common.back_to_apps_url)}
             >
                 {labels.common.back_to_loyalty}
@@ -26,7 +26,7 @@ const TitleActionContainer = ({ title, saveAction, saveDisabled = false, showSav
                 <Button
                     click={syncAction}
                     disabled={syncDisabled || syncLoading}
-                    icon={<i className={`wlr wlrf-refresh text-md font-medium color-important ${syncLoading ? 'animate-spin' : ''}`} />}
+                    icon={<i className={`wlr wlrf-refresh wlmi-text-md wlmi-font-medium color-important ${syncLoading ? 'wlmi-animate-spin' : ''}`} />}
                 >
                     {labels.settings?.perform_sync || "Perform Sync"}
                 </Button>
@@ -34,7 +34,7 @@ const TitleActionContainer = ({ title, saveAction, saveDisabled = false, showSav
 
             {showSave && (
                 <Button
-                    icon={<i className={`wlr wlrf-save text-md font-medium color-important `}/>}
+                    icon={<i className={`wlr wlrf-save wlmi-text-md wlmi-font-medium color-important `}/>}
                     click={saveAction}
                     disabled={saveDisabled}
                 >

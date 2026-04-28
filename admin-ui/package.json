@@ -16,7 +16,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "cross-env BABEL_ENV=default NODE_ENV=production webpack --mode production --progress",
     "start": "cross-env BABEL_ENV=default NODE_ENV=development webpack --watch --mode development --progress",
-    "css": "postcss ./src/styles/tailwind.css -o ./src/styles/tailwind.generated.css"
+    "css": "postcss ./src/styles/tailwind.css -o ../assets/admin/css/dist/style.css"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",

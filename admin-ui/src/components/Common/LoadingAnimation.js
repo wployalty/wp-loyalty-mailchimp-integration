@@ -1,6 +1,6 @@
 import React from "react";
 
-const LoadingAnimation = ({height = "h-full"}) => {
+const LoadingAnimation = ({height = "wlmi-h-full"}) => {
     const [text, setText] = React.useState("Loading...");
 
     React.useEffect(() => {
@@ -14,9 +14,9 @@ const LoadingAnimation = ({height = "h-full"}) => {
     }, [])
 
     return (
-        <div className={`bg-white  text-primary space-y-4 flex flex-col items-center justify-center  w-full ${height}`}>
-            <i className="wlr wlrf-spinner animate-spin  text-2xl text-primary  "/>
-            <p className="text-sm font-medium">{text}</p>
+        <div className={`wlmi-bg-white  wlmi-text-primary wlmi-space-y-4 wlmi-flex wlmi-flex-col wlmi-items-center wlmi-justify-center  wlmi-w-full ${height}`}>
+            <i className="wlr wlrf-spinner wlmi-animate-spin  wlmi-text-2xl wlmi-text-primary  "/>
+            <p className="wlmi-text-sm wlmi-font-medium">{text}</p>
         </div>
     );
 };

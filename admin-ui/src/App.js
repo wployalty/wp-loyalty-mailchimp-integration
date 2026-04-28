@@ -38,18 +38,18 @@ const App = () => {
     }, []);
 
     return (<div
-        className={"bg-grey_extra_light px-5 xl:px-10 py-5 h-full w-full flex items-start justify-start flex-col"}
+        className={"wlmi-bg-grey_extra_light wlmi-px-5 xl:wlmi-px-10 wlmi-py-5 wlmi-h-full wlmi-w-full wlmi-flex wlmi-items-start wlmi-justify-start wlmi-flex-col"}
         style={{
             fontFamily: `Helvetica`
         }}
     >
         {/* Heading Title and version*/}
-        {loading ? <LoadingAnimation height={"h-[85vh]"}/>
+        {loading ? <LoadingAnimation height={"wlmi-h-[85vh]"}/>
             : (
-                <div className={` w-full `}>
-                    <div className={`flex items-baseline  gap-x-3`}>
-                        <p className={`text-2xl text-dark font-bold`}>{labels?.common?.plugin_name || ""}</p>
-                        <span className={`text-base text-extra_light font-medium`}>{labels?.common?.version || ""}</span>
+                <div className={` wlmi-w-full `}>
+                    <div className={`wlmi-flex wlmi-items-baseline  wlmi-gap-x-3`}>
+                        <p className={`wlmi-text-2xl wlmi-text-dark wlmi-font-bold`}>{labels?.common?.plugin_name || ""}</p>
+                        <span className={`wlmi-text-base wlmi-text-extra_light wlmi-font-medium`}>{labels?.common?.version || ""}</span>
                     </div>
                     <CommonContext.Provider value={
                         {

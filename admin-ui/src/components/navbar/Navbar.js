@@ -12,7 +12,7 @@ const Navbar = () => {
         },
     ]
 
-    return <div className={`flex h-13 w-24 gap-1`}>
+    return <div className={`wlmi-flex wlmi-h-13 wlmi-w-24 wlmi-gap-1`}>
         {
             tabs.map((tab) => {
                 return <Tab tab={tab} key={tab.label}/>

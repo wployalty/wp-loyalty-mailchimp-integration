@@ -125,11 +125,11 @@ const ListSelect = ({
     };
 
     return (
-        <div className="w-full" id="input-select-tag">
+        <div className="wlmi-w-full" id="input-select-tag">
             <Select
                 id={id}
                 options={options}
-                className={`w-full focus:border-2 focus:border-primary ${error && "input-error"}`}
+                className={`wlmi-w-full focus:wlmi-border-2 focus:wlmi-border-primary ${error && "wlmi_input-error"}`}
                 value={value}
                 onChange={(selected) => {
                     onChange(selected);

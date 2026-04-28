@@ -12,10 +12,10 @@ const ListSettings = ({ isConnected, settings, setSettings, selectedList, setSel
     }
 
     return (
-        <div className="flex flex-col w-full">
+        <div className="wlmi-flex wlmi-flex-col wlmi-w-full">
             {/* List Selection */}
-            <div className="flex flex-col w-full mt-5">
-                <label className="text-dark font-medium text-sm mb-2">
+            <div className="wlmi-flex wlmi-flex-col wlmi-w-full wlmi-mt-5">
+                <label className="wlmi-text-dark wlmi-font-medium wlmi-text-sm wlmi-mb-2">
                     {labels.settings?.list_label || "Select Mailchimp List"}
                 </label>
                 <ListSelect
@@ -43,11 +43,11 @@ const ListSettings = ({ isConnected, settings, setSettings, selectedList, setSel
                     noOptionsMessage={labels.settings?.no_results_message || "No lists found"}
                     scrollForMoreMessage={labels.settings?.scroll_for_more_message || "Scroll for more..."}
                 />
-                <p className="text-xs text-light mt-1">
+                <p className="wlmi-text-xs wlmi-text-light wlmi-mt-1">
                     {labels.settings?.list_description || "Choose the Mailchimp list where customers will be added"}
                 </p>
                 {isAutoFetching && (
-                    <p className="text-xs text-primary mt-1 font-medium">
+                    <p className="wlmi-text-xs wlmi-text-primary wlmi-mt-1 wlmi-font-medium">
                         🔍 {(labels.settings?.searching_progress_message || "Searching through %s lists...").replace('%s', totalLists)}
                     </p>
                 )}
@@ -55,8 +55,8 @@ const ListSettings = ({ isConnected, settings, setSettings, selectedList, setSel
 
             {/* Migration Choice Dropdown */}
             {listTransition && settings.list_id && (
-                <div className="flex flex-col w-full mt-5">
-                    <label className="text-dark font-medium text-sm mb-2">
+                <div className="wlmi-flex wlmi-flex-col wlmi-w-full wlmi-mt-5">
+                    <label className="wlmi-text-dark wlmi-font-medium wlmi-text-sm wlmi-mb-2">
                         {labels.settings?.migration_label || "Migration Choice"}
                     </label>
                     <DropdownWrapper
@@ -72,13 +72,13 @@ const ListSettings = ({ isConnected, settings, setSettings, selectedList, setSel
                         label={settings.migration_choice
                             ? getChosenLabel(labels.settings?.migration_options || [], settings.migration_choice) || labels.settings?.migration_placeholder
                             : (labels.settings?.migration_placeholder || "Select migration choice")}
-                        width="w-full"
+                        width="wlmi-w-full"
                     />
-                    <p className="text-xs text-light mt-1">
+                    <p className="wlmi-text-xs wlmi-text-light wlmi-mt-1">
                         {labels.settings?.migration_description || "Choose your migration option"}
                     </p>
                     {errorList.includes("migration_choice") && (
-                        <p className="text-xs text-red-600 mt-1">
+                        <p className="wlmi-text-xs wlmi-text-red-600 wlmi-mt-1">
                             {labels.settings?.migration_choice_required || "Please choose whether to migrate existing users."}
                         </p>
                     )}

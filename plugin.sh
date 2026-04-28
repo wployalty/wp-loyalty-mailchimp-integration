@@ -30,6 +30,7 @@ composer_run() {
   nvm use 20
   npm i -q
   npm run build -q
+  npm run css -q
   echo "Admin UI NPM Done"
   # shellcheck disable=SC2164
   cd "$current_dir"

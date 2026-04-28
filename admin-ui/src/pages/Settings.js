@@ -305,7 +305,7 @@ const Settings = () => {
     const saveDisabled = disableSave || !isConnected || !settings.list_id || (listTransition && !settings.migration_choice) || !isDirty;
 
     return (
-        <div className="w-full flex flex-col gap-y-2 items-start h-full">
+        <div className="wlmi-w-full wlmi-flex wlmi-flex-col wlmi-gap-y-2 wlmi-items-start wlmi-h-full">
             <TitleActionContainer 
                 title={labels.settings?.title || "Mailchimp Settings"} 
                 saveAction={() => saveSettings()}
@@ -316,33 +316,33 @@ const Settings = () => {
                 syncDisabled={isDirty}
             />
 
-            <div className="flex gap-x-6 items-stretch w-full min-h-[590px]">
-                <div className="w-full flex-1 min-h-full flex flex-col border border-card_border rounded-xl bg-white p-6 overflow-y-auto">
+            <div className="wlmi-flex wlmi-gap-x-6 wlmi-items-stretch wlmi-w-full wlmi-min-h-[590px]">
+                <div className="wlmi-w-full wlmi-flex-1 wlmi-min-h-full wlmi-flex wlmi-flex-col wlmi-border wlmi-border-card_border wlmi-rounded-xl wlmi-bg-white wlmi-p-6 wlmi-overflow-y-auto">
                     {loading ? (
-                        <div className="flex flex-col gap-y-4 w-full">
-                            <ShimmerLoading height="h-8" width="w-1/4" />
-                            <ShimmerLoading height="h-4" width="w-1/2" />
-                            <div className="flex gap-x-4 mt-4">
-                                <ShimmerLoading height="h-12" width="w-7/12" />
-                                <ShimmerLoading height="h-12" width="w-2/12" />
+                        <div className="wlmi-flex wlmi-flex-col wlmi-gap-y-4 wlmi-w-full">
+                            <ShimmerLoading height="wlmi-h-8" width="wlmi-w-1/4" />
+                            <ShimmerLoading height="wlmi-h-4" width="wlmi-w-1/2" />
+                            <div className="wlmi-flex wlmi-gap-x-4 wlmi-mt-4">
+                                <ShimmerLoading height="wlmi-h-12" width="wlmi-w-7/12" />
+                                <ShimmerLoading height="wlmi-h-12" width="wlmi-w-2/12" />
                             </div>
-                            <ShimmerLoading height="h-4" width="w-1/6" />
-                            <div className="mt-5">
-                                <ShimmerLoading height="h-4" width="w-1/5" />
-                                <ShimmerLoading height="h-12" width="w-full" />
-                                <ShimmerLoading height="h-3" width="w-2/5" />
+                            <ShimmerLoading height="wlmi-h-4" width="wlmi-w-1/6" />
+                            <div className="wlmi-mt-5">
+                                <ShimmerLoading height="wlmi-h-4" width="wlmi-w-1/5" />
+                                <ShimmerLoading height="wlmi-h-12" width="wlmi-w-full" />
+                                <ShimmerLoading height="wlmi-h-3" width="wlmi-w-2/5" />
                             </div>
                         </div>
                     ) : (
                         <React.Fragment>
-                                    <h4 className="text-dark font-semibold text-lg tracking-wide">
+                                    <h4 className="wlmi-text-dark wlmi-font-semibold wlmi-text-lg wlmi-tracking-wide">
                                         {labels.settings?.title || "Mailchimp Settings"}
                                     </h4>
-                                    <p className="text-sm text-light font-normal mt-2 2xl:mt-2.5">
+                                    <p className="wlmi-text-sm wlmi-text-light wlmi-font-normal wlmi-mt-2 2xl:wlmi-mt-2.5">
                                         {labels.settings?.description || "You can find your API key in your Mailchimp account settings."}
                                     </p>
 
-                                    <div className="flex flex-col w-74_% 2xl:w-7/12 mt-3 xl:mt-4 2xl:mt-5">
+                                    <div className="wlmi-flex wlmi-flex-col wlmi-w-74_% 2xl:wlmi-w-7/12 wlmi-mt-3 xl:wlmi-mt-4 2xl:wlmi-mt-5">
                                         <ConnectionSettings
                                             settings={settings}
                                             setSettings={setSettings}
